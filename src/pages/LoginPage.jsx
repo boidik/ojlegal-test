@@ -14,22 +14,19 @@ import {
   DialogContent,
   DialogActions,
   Link,
-  Chip,
   Paper,
 } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
 import GoogleIcon from "@mui/icons-material/Google";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
-import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
-import PersonIcon from "@mui/icons-material/Person";
+import SecurityIcon from "@mui/icons-material/Security";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 
 export default function LoginPage() {
-  const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword, switchDemoRole } = useAuth();
-  const { settings, isConfigured } = useApp();
+  const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword } = useAuth();
+  const { settings } = useApp();
 
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
@@ -54,7 +51,7 @@ export default function LoginPage() {
   const handleEmailAuth = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      setError("Please fill in email and password.");
+      setError("Please fill in both email and password.");
       return;
     }
     setLoading(true);
@@ -62,6 +59,11 @@ export default function LoginPage() {
 
     try {
       if (isRegister) {
+        if (!displayName.trim()) {
+          setError("Please enter your full name.");
+          setLoading(false);
+          return;
+        }
         const res = await registerWithEmail(email, password, displayName);
         if (!res.success) setError(res.error);
       } else {
@@ -98,29 +100,29 @@ export default function LoginPage() {
       }}
     >
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{ width: "100%", maxWidth: 460 }}
+        transition={{ duration: 0.35 }}
+        style={{ width: "100%", maxWidth: 450 }}
       >
         <Card
           sx={{
             borderRadius: 3.5,
-            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+            boxShadow: "0 25px 50px rgba(0, 0, 0, 0.6)",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             backgroundColor: "#0d1b2e",
             color: "#ffffff",
           }}
         >
-          <CardContent sx={{ p: 4 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4.5 } }}>
             {/* Law Firm Logo & Header */}
-            <Box sx={{ textAlign: "center", mb: 3 }}>
+            <Box sx={{ textAlign: "center", mb: 3.5 }}>
               <Box
                 sx={{
-                  width: 52,
-                  height: 52,
+                  width: 54,
+                  height: 54,
                   borderRadius: 3,
-                  backgroundColor: "#c99738",
+                  backgroundColor: settings.headerAccentColor || "#c99738",
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -132,14 +134,18 @@ export default function LoginPage() {
                 <GavelIcon sx={{ fontSize: 32 }} />
               </Box>
               <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: "-0.01em", color: "#ffffff" }}>
-                {settings.firmName || "LexVeritas & Partners"}
+                {settings.firmName || "OJ Legal Advocates & Solicitors"}
               </Typography>
-              <Typography variant="caption" sx={{ color: "rgba(255, 255, 255, 0.65)", display: "block" }}>
+              <Typography variant="caption" sx={{ color: "rgba(255, 255, 255, 0.65)", display: "block", mt: 0.5 }}>
                 {settings.tagline || "Expense Disbursement & Staff Float Management"}
               </Typography>
             </Box>
 
-            {error && <Alert severity="error" sx={{ mb: 2.5 }}>{error}</Alert>}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>
+                {error}
+              </Alert>
+            )}
 
             {/* Google Sign-In Button */}
             <Button
@@ -154,16 +160,17 @@ export default function LoginPage() {
                 backgroundColor: "#ffffff",
                 color: "#1e293b",
                 fontWeight: 700,
-                py: 1.2,
-                "&:hover": { backgroundColor: "#f1f5f9" },
+                py: 1.3,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                "&:hover": { backgroundColor: "#f8fafc" },
               }}
             >
-              Sign In with Google
+              Sign In with Google Account
             </Button>
 
-            <Divider sx={{ my: 2, borderColor: "rgba(255,255,255,0.12)" }}>
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)" }}>
-                OR SIGN IN WITH EMAIL
+            <Divider sx={{ my: 2.5, borderColor: "rgba(255,255,255,0.12)" }}>
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>
+                OR SIGN IN WITH EMAIL & PASSWORD
               </Typography>
             </Divider>
 
@@ -173,22 +180,41 @@ export default function LoginPage() {
                 <TextField
                   fullWidth
                   label="Full Name / Advocate Title"
+                  placeholder="Adv. Priya Sharma"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   size="small"
-                  sx={{ mb: 2, "& .MuiInputBase-root": { color: "#fff" }, "& .MuiInputLabel-root": { color: "#94a3b8" } }}
+                  required
+                  sx={{
+                    mb: 2,
+                    "& .MuiOutlinedInput-root": {
+                      color: "#fff",
+                      "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                      "&:hover fieldset": { borderColor: "#c99738" },
+                    },
+                    "& .MuiInputLabel-root": { color: "#94a3b8" },
+                  }}
                 />
               )}
 
               <TextField
                 fullWidth
                 label="Official Email Address"
+                placeholder="name@ojlegal.com"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 size="small"
                 required
-                sx={{ mb: 2, "& .MuiInputBase-root": { color: "#fff" }, "& .MuiInputLabel-root": { color: "#94a3b8" } }}
+                sx={{
+                  mb: 2,
+                  "& .MuiOutlinedInput-root": {
+                    color: "#fff",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "&:hover fieldset": { borderColor: "#c99738" },
+                  },
+                  "& .MuiInputLabel-root": { color: "#94a3b8" },
+                }}
               />
 
               <TextField
@@ -199,16 +225,24 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 size="small"
                 required
-                sx={{ mb: 2, "& .MuiInputBase-root": { color: "#fff" }, "& .MuiInputLabel-root": { color: "#94a3b8" } }}
+                sx={{
+                  mb: 2,
+                  "& .MuiOutlinedInput-root": {
+                    color: "#fff",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "&:hover fieldset": { borderColor: "#c99738" },
+                  },
+                  "& .MuiInputLabel-root": { color: "#94a3b8" },
+                }}
               />
 
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                 <Link
                   component="button"
                   type="button"
                   variant="caption"
                   onClick={() => { setResetModalOpen(true); setResetMessage(""); }}
-                  sx={{ color: "#93c5fd" }}
+                  sx={{ color: "#93c5fd", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
                 >
                   Forgot Password?
                 </Link>
@@ -218,9 +252,9 @@ export default function LoginPage() {
                   type="button"
                   variant="caption"
                   onClick={() => { setIsRegister(!isRegister); setError(""); }}
-                  sx={{ color: "#c99738", fontWeight: 700 }}
+                  sx={{ color: "#c99738", fontWeight: 700, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
                 >
-                  {isRegister ? "Have an account? Sign In" : "New Staff? Register"}
+                  {isRegister ? "Already registered? Sign In" : "New Associate? Register"}
                 </Link>
               </Box>
 
@@ -231,90 +265,40 @@ export default function LoginPage() {
                 size="large"
                 disabled={loading}
                 sx={{
-                  py: 1.2,
+                  py: 1.3,
                   fontWeight: 700,
+                  fontSize: "0.95rem",
                   background: "linear-gradient(135deg, #c99738 0%, #dfb25d 100%)",
                   color: "#081320",
+                  "&:hover": { background: "linear-gradient(135deg, #dfb25d 0%, #c99738 100%)" },
                 }}
               >
-                {loading ? <CircularProgress size={24} color="inherit" /> : isRegister ? "Create Staff Account" : "Access Portal"}
+                {loading ? <CircularProgress size={24} color="inherit" /> : isRegister ? "Create Law Firm Account" : "Access Portal"}
               </Button>
             </form>
 
-            {/* Quick Demo Personas */}
-            <Paper
-              elevation={0}
-              sx={{
-                mt: 3,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor: "rgba(255, 255, 255, 0.04)",
-                border: "1px dashed rgba(255, 255, 255, 0.12)",
-              }}
-            >
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)", display: "block", mb: 1, fontWeight: 700 }}>
-                QUICK 1-CLICK DEMO ACCESS:
+            {/* Security Notice */}
+            <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+              <SecurityIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.4)" }} />
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.72rem" }}>
+                Restricted to authorized law firm personnel. Protected by Google Cloud Firestore.
               </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<AdminPanelSettingsIcon sx={{ color: "#c084fc" }} />}
-                  onClick={() => switchDemoRole("software_admin")}
-                  sx={{
-                    justifyContent: "flex-start",
-                    color: "#e9d5ff",
-                    borderColor: "rgba(192, 132, 252, 0.3)",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Login as Software Admin (You)
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<AccountBalanceIcon sx={{ color: "#38bdf8" }} />}
-                  onClick={() => switchDemoRole("accounts_admin")}
-                  sx={{
-                    justifyContent: "flex-start",
-                    color: "#bae6fd",
-                    borderColor: "rgba(56, 189, 248, 0.3)",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Login as Accounts Admin (Boss)
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<PersonIcon sx={{ color: "#4ade80" }} />}
-                  onClick={() => switchDemoRole("staff")}
-                  sx={{
-                    justifyContent: "flex-start",
-                    color: "#bbf7d0",
-                    borderColor: "rgba(74, 222, 128, 0.3)",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Login as Legal Staff (Priya Sharma)
-                </Button>
-              </Box>
-            </Paper>
+            </Box>
           </CardContent>
         </Card>
       </motion.div>
 
       {/* Password Reset Modal */}
       <Dialog open={resetModalOpen} onClose={() => setResetModalOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Reset Password</DialogTitle>
+        <DialogTitle>Reset Account Password</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Enter your official law firm email address to receive a secure password reset link.
+            Enter your registered email address to receive an official password reset link.
           </Typography>
           <TextField
             fullWidth
             size="small"
-            label="Email Address"
+            label="Registered Email Address"
             type="email"
             value={resetEmail}
             onChange={(e) => setResetEmail(e.target.value)}
@@ -328,7 +312,7 @@ export default function LoginPage() {
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setResetModalOpen(false)}>Close</Button>
           <Button variant="contained" onClick={handleSendReset} disabled={!resetEmail}>
-            Send Link
+            Send Reset Link
           </Button>
         </DialogActions>
       </Dialog>

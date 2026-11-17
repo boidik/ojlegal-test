@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Snackbar, Alert, CircularProgress } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "./components/Navbar";
@@ -10,15 +10,37 @@ import { useAuth } from "./context/AuthContext";
 import { useApp } from "./context/AppContext";
 
 export default function App() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, isSoftwareAdmin, isAccountsAdmin, isStaff } = useAuth();
   const { notification, closeNotification } = useApp();
 
   // Tab state: "staff" | "accounts_admin" | "software_admin"
-  const [activeTab, setActiveTab] = useState(() => {
-    if (currentUser?.role === "software_admin") return "software_admin";
-    if (currentUser?.role === "accounts_admin") return "accounts_admin";
-    return "staff";
-  });
+  const [activeTab, setActiveTab] = useState("staff");
+
+  // Strict role-based landing & authorization guard
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === "software_admin") {
+        setActiveTab("software_admin");
+      } else if (currentUser.role === "accounts_admin") {
+        setActiveTab("accounts_admin");
+      } else {
+        // Staff can ONLY access the staff portal
+        setActiveTab("staff");
+      }
+    }
+  }, [currentUser]);
+
+  // Prevent staff or boss from accessing unauthorized tabs
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === "staff" && activeTab !== "staff") {
+        setActiveTab("staff");
+      }
+      if (currentUser.role === "accounts_admin" && activeTab === "software_admin") {
+        setActiveTab("accounts_admin");
+      }
+    }
+  }, [activeTab, currentUser]);
 
   if (loading) {
     return (
@@ -36,16 +58,17 @@ export default function App() {
     );
   }
 
+  // If no user is authenticated, strictly display the Login Page
   if (!currentUser) {
     return <LoginPage />;
   }
 
   return (
     <Box sx={{ minHeight: "100vh", backgroundColor: "background.default", color: "text.primary" }}>
-      {/* Top Navbar */}
+      {/* Top Navbar with role-specific views */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main Page Area with subtle professional transition */}
+      {/* Main Page Area */}
       <Box component="main" sx={{ pb: 8 }}>
         <AnimatePresence mode="wait">
           {activeTab === "staff" && (
@@ -54,31 +77,31 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
             >
               <StaffExpensePage />
             </motion.div>
           )}
 
-          {activeTab === "accounts_admin" && (
+          {activeTab === "accounts_admin" && (isAccountsAdmin || isSoftwareAdmin) && (
             <motion.div
               key="accounts"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
             >
               <AccountsAdminPage />
             </motion.div>
           )}
 
-          {activeTab === "software_admin" && (
+          {activeTab === "software_admin" && isSoftwareAdmin && (
             <motion.div
               key="software"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
             >
               <SoftwareAdminPage />
             </motion.div>

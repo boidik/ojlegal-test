@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { 
   auth, 
   googleProvider, 
-  isFirebaseConfigured 
+  isFirebaseConfigured,
+  db 
 } from "../services/firebase";
 import { 
   signInWithPopup, 
@@ -12,69 +13,92 @@ import {
   signOut, 
   onAuthStateChanged 
 } from "firebase/auth";
-import { getUsers, saveUser } from "../services/dataStore";
-import { INITIAL_USERS } from "../services/sampleData";
+import { doc, getDoc, setDoc, getDocs, collection } from "firebase/firestore";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // Current logged in user object
-  // Default to Software Admin for immediate testing if in preview mode
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem("lex_active_user");
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return INITIAL_USERS[0]; // Software Admin
-  });
-
+  // Current user starts as null! Strict authentication required.
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  // Monitor Firebase Auth state if configured
+  // Monitor real Firebase Auth state
   useEffect(() => {
+    // Clear any obsolete mock session
+    localStorage.removeItem("lex_active_user");
+    localStorage.removeItem("oj_active_user");
+
     if (isFirebaseConfigured() && auth) {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-          const allUsers = await getUsers();
-          let profile = allUsers.find(u => u.uid === firebaseUser.uid || u.email === firebaseUser.email);
+          try {
+            // Fetch real user profile from Firestore
+            const userRef = doc(db, "users", firebaseUser.uid);
+            const userSnap = await getDoc(userRef);
 
-          if (!profile) {
-            // First time registration: Default role is staff (or software admin if first user)
-            const isFirst = allUsers.length === 0;
-            profile = {
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              setCurrentUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email.split("@")[0],
+                role: userData.role || "staff",
+                designation: userData.designation || "Legal Associate",
+                phone: userData.phone || firebaseUser.phoneNumber || "",
+                isActive: userData.isActive !== false,
+              });
+            } else {
+              // First time user registration in Firestore
+              // If there are zero existing users in Firestore, assign software_admin to the creator.
+              // All subsequent users default to staff.
+              let role = "staff";
+              try {
+                const allUsersSnap = await getDocs(collection(db, "users"));
+                if (allUsersSnap.empty) {
+                  role = "software_admin";
+                }
+              } catch (e) {
+                console.warn("Could not check users count:", e);
+              }
+
+              const newProfile = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName || firebaseUser.email.split("@")[0],
+                role: role,
+                designation: role === "software_admin" ? "Systems Administrator" : "Legal Staff Associate",
+                phone: firebaseUser.phoneNumber || "",
+                isActive: true,
+                createdAt: new Date().toISOString()
+              };
+
+              await setDoc(userRef, newProfile);
+              setCurrentUser(newProfile);
+            }
+          } catch (err) {
+            console.error("Error loading user profile from Firestore:", err);
+            // Fallback basic user object
+            setCurrentUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName || firebaseUser.email.split("@")[0],
-              role: isFirst ? "software_admin" : "staff",
-              designation: "Legal Staff Associate",
-              phone: firebaseUser.phoneNumber || "",
-              isActive: true,
-              createdAt: new Date().toISOString()
-            };
-            await saveUser(profile);
+              role: "staff",
+            });
           }
-
-          setCurrentUser(profile);
-          localStorage.setItem("lex_active_user", JSON.stringify(profile));
+        } else {
+          // No user is logged in
+          setCurrentUser(null);
         }
         setLoading(false);
       });
       return () => unsubscribe();
     } else {
+      // Not configured, still starts as null
+      setCurrentUser(null);
       setLoading(false);
     }
   }, []);
-
-  // Update localStorage when currentUser changes
-  const setUser = (user) => {
-    setCurrentUser(user);
-    if (user) {
-      localStorage.setItem("lex_active_user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("lex_active_user");
-    }
-  };
 
   // Google Sign-In
   const loginWithGoogle = async () => {
@@ -88,18 +112,7 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: err.message };
       }
     } else {
-      // Mock Google Login in preview mode
-      const googleMock = {
-        uid: "google-mock-" + Date.now(),
-        email: "counsel.associate@lexveritaslaw.com",
-        displayName: "Advocate (Google Sign-In)",
-        role: "staff",
-        designation: "Associate Advocate",
-        isActive: true
-      };
-      await saveUser(googleMock);
-      setUser(googleMock);
-      return { success: true, user: googleMock };
+      return { success: false, error: "Firebase Authentication is not configured." };
     }
   };
 
@@ -108,69 +121,62 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
     if (isFirebaseConfigured() && auth) {
       try {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
         return { success: true, user: cred.user };
       } catch (err) {
-        setAuthError(err.message);
-        return { success: false, error: err.message };
+        let msg = err.message;
+        if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+          msg = "Invalid email or password. Please verify your credentials.";
+        }
+        setAuthError(msg);
+        return { success: false, error: msg };
       }
     } else {
-      // Check existing users in storage
-      const users = await getUsers();
-      const matched = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (matched) {
-        setUser(matched);
-        return { success: true, user: matched };
-      } else {
-        // Create demo session
-        const newUser = {
-          uid: "usr-" + Date.now(),
-          email,
-          displayName: email.split("@")[0],
-          role: "staff",
-          designation: "Legal Staff Associate",
-          isActive: true
-        };
-        await saveUser(newUser);
-        setUser(newUser);
-        return { success: true, user: newUser };
-      }
+      return { success: false, error: "Firebase Authentication is not configured." };
     }
   };
 
   // Register with Email & Password
-  const registerWithEmail = async (email, password, displayName, requestedRole = "staff") => {
+  const registerWithEmail = async (email, password, displayName) => {
     setAuthError(null);
     if (isFirebaseConfigured() && auth) {
       try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        
+        // Determine role: if first user in Firestore, make software_admin, otherwise staff
+        let role = "staff";
+        try {
+          const allUsersSnap = await getDocs(collection(db, "users"));
+          if (allUsersSnap.empty || allUsersSnap.size <= 1) {
+            role = "software_admin";
+          }
+        } catch (e) {}
+
         const newProfile = {
           uid: cred.user.uid,
           email: cred.user.email,
-          displayName: displayName || email.split("@")[0],
-          role: requestedRole,
-          designation: requestedRole === "accounts_admin" ? "Accounts Officer" : "Legal Staff",
-          isActive: true
+          displayName: displayName.trim() || email.split("@")[0],
+          role: role,
+          designation: role === "software_admin" ? "Systems Administrator" : "Legal Staff Associate",
+          isActive: true,
+          createdAt: new Date().toISOString()
         };
-        await saveUser(newProfile);
-        setUser(newProfile);
+
+        await setDoc(doc(db, "users", cred.user.uid), newProfile);
+        setCurrentUser(newProfile);
         return { success: true, user: newProfile };
       } catch (err) {
-        setAuthError(err.message);
-        return { success: false, error: err.message };
+        let msg = err.message;
+        if (err.code === "auth/email-already-in-use") {
+          msg = "This email is already registered. Please sign in instead.";
+        } else if (err.code === "auth/weak-password") {
+          msg = "Password should be at least 6 characters long.";
+        }
+        setAuthError(msg);
+        return { success: false, error: msg };
       }
     } else {
-      const newProfile = {
-        uid: "usr-" + Date.now(),
-        email,
-        displayName: displayName || email.split("@")[0],
-        role: requestedRole,
-        designation: requestedRole === "accounts_admin" ? "Accounts Officer" : "Legal Staff",
-        isActive: true
-      };
-      await saveUser(newProfile);
-      setUser(newProfile);
-      return { success: true, user: newProfile };
+      return { success: false, error: "Firebase Authentication is not configured." };
     }
   };
 
@@ -178,16 +184,13 @@ export const AuthProvider = ({ children }) => {
   const resetPassword = async (email) => {
     if (isFirebaseConfigured() && auth) {
       try {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, email.trim());
         return { success: true, message: "Password reset link sent to " + email };
       } catch (err) {
         return { success: false, error: err.message };
       }
     } else {
-      return { 
-        success: true, 
-        message: `In live mode, a password reset link is securely dispatched by Firebase to ${email}. (Preview simulated successfully!)` 
-      };
+      return { success: false, error: "Firebase is not configured." };
     }
   };
 
@@ -196,20 +199,7 @@ export const AuthProvider = ({ children }) => {
     if (isFirebaseConfigured() && auth) {
       await signOut(auth);
     }
-    setUser(null);
-  };
-
-  // Quick Switcher for Demo / Inspection
-  const switchDemoRole = async (targetRole) => {
-    const users = await getUsers();
-    const match = users.find(u => u.role === targetRole) || {
-      uid: "user-" + targetRole,
-      email: `${targetRole}@lexveritaslaw.com`,
-      displayName: targetRole.replace("_", " ").toUpperCase(),
-      role: targetRole,
-      isActive: true
-    };
-    setUser(match);
+    setCurrentUser(null);
   };
 
   return (
@@ -218,13 +208,11 @@ export const AuthProvider = ({ children }) => {
         currentUser,
         loading,
         authError,
-        setUser,
         loginWithGoogle,
         loginWithEmail,
         registerWithEmail,
         resetPassword,
         logout,
-        switchDemoRole,
         isSoftwareAdmin: currentUser?.role === "software_admin",
         isAccountsAdmin: currentUser?.role === "accounts_admin",
         isStaff: currentUser?.role === "staff"
