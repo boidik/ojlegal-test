@@ -56,11 +56,14 @@ export const AuthProvider = ({ children }) => {
             const userRef = doc(db, "users", firebaseUser.uid);
             const userSnap = await getDoc(userRef);
 
-            const isOwner = firebaseUser.email && (firebaseUser.email.toLowerCase().includes("boidik") || firebaseUser.email.toLowerCase().includes("admin@ojlegal"));
+            const userEmail = (firebaseUser.email || "").toLowerCase().trim();
+            const isOwner = userEmail === "advocate@boidikghosh.in" ||
+                            userEmail.includes("boidik") ||
+                            userEmail.includes("admin@ojlegal");
 
             if (userSnap.exists()) {
               const userData = userSnap.data();
-              let assignedRole = userData.role || (isOwner ? "software_admin" : "staff");
+              let assignedRole = isOwner ? "software_admin" : (userData.role || "staff");
               if (isOwner && userData.role !== "software_admin") {
                 assignedRole = "software_admin";
                 try {
@@ -71,9 +74,9 @@ export const AuthProvider = ({ children }) => {
               setCurrentUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
-                displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email.split("@")[0],
+                displayName: userData.displayName || firebaseUser.displayName || (userEmail === "advocate@boidikghosh.in" ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
                 role: assignedRole,
-                designation: userData.designation || (assignedRole === "software_admin" ? "Systems Administrator" : assignedRole === "accounts_admin" ? "Accounts Head / Boss" : "Legal Associate"),
+                designation: assignedRole === "software_admin" ? "Systems Administrator / Managing Partner" : (userData.designation || "Legal Associate"),
                 phone: userData.phone || firebaseUser.phoneNumber || "",
                 isActive: userData.isActive !== false,
               });
@@ -91,9 +94,9 @@ export const AuthProvider = ({ children }) => {
               const newProfile = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
-                displayName: firebaseUser.displayName || firebaseUser.email.split("@")[0],
+                displayName: firebaseUser.displayName || (userEmail === "advocate@boidikghosh.in" ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
                 role: role,
-                designation: role === "software_admin" ? "Systems Administrator" : "Legal Staff Associate",
+                designation: role === "software_admin" ? "Systems Administrator / Managing Partner" : "Legal Staff Associate",
                 phone: firebaseUser.phoneNumber || "",
                 isActive: true,
                 createdAt: new Date().toISOString()
@@ -104,11 +107,16 @@ export const AuthProvider = ({ children }) => {
             }
           } catch (err) {
             console.error("Error loading user profile:", err);
+            const userEmail = (firebaseUser.email || "").toLowerCase().trim();
+            const isOwner = userEmail === "advocate@boidikghosh.in" ||
+                            userEmail.includes("boidik") ||
+                            userEmail.includes("admin@ojlegal");
             setCurrentUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName || firebaseUser.email.split("@")[0],
-              role: "staff",
+              displayName: firebaseUser.displayName || (userEmail === "advocate@boidikghosh.in" ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
+              role: isOwner ? "software_admin" : "staff",
+              designation: isOwner ? "Systems Administrator / Managing Partner" : "Legal Staff Associate",
             });
           }
         } else {

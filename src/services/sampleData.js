@@ -104,5 +104,15 @@ export const STANDARD_COURT_FORUMS = [
 ];
 
 export const OFFLINE_DEMO_CASES = [];
-export const OFFLINE_DEMO_USERS = [];
-export const INITIAL_USERS = [];
+export const OFFLINE_DEMO_USERS = [
+  {
+    uid: "ADMIN-BOIDIK",
+    email: "advocate@boidikghosh.in",
+    displayName: "Adv. Boidik Ghosh",
+    role: "software_admin",
+    designation: "Systems Administrator / Managing Partner",
+    phone: "+91 98100 00000",
+    isActive: true,
+  }
+];
+export const INITIAL_USERS = OFFLINE_DEMO_USERS;
