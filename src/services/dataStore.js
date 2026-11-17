@@ -7,33 +7,58 @@ import {
   getDocs, 
   doc, 
   setDoc, 
-  addDoc, 
   updateDoc, 
   deleteDoc, 
   query, 
-  where, 
   orderBy, 
   getDoc 
 } from "firebase/firestore";
 import { 
-  INITIAL_CASES, 
-  INITIAL_EXPENSES, 
-  INITIAL_ADVANCES, 
-  INITIAL_CATEGORIES, 
   INITIAL_SETTINGS, 
-  INITIAL_USERS 
+  STANDARD_LEGAL_CATEGORIES,
+  OFFLINE_DEMO_CASES,
+  OFFLINE_DEMO_USERS,
+  PRESET_FAVICONS
 } from "./sampleData";
 
 const STORAGE_KEYS = {
-  CASES: "lex_store_cases",
-  EXPENSES: "lex_store_expenses",
-  ADVANCES: "lex_store_advances",
-  CATEGORIES: "lex_store_categories",
-  SETTINGS: "lex_store_settings",
-  USERS: "lex_store_users",
+  CASES: "oj_store_cases",
+  EXPENSES: "oj_store_expenses",
+  ADVANCES: "oj_store_advances",
+  CATEGORIES: "oj_store_categories",
+  SETTINGS: "oj_store_settings",
+  USERS: "oj_store_users",
 };
 
-// Helper for local storage retrieval with default fallback
+// Dynamic Favicon and Title Applicator
+export const applyFaviconAndTitle = (settings) => {
+  if (!settings) return;
+
+  // 1. Update Document Title
+  if (settings.firmName) {
+    document.title = `${settings.firmName} - Expense & Float Management`;
+  }
+
+  // 2. Update Favicon Link
+  let faviconUrl = "";
+  if (settings.faviconType === "custom_url" && settings.customFaviconUrl) {
+    faviconUrl = settings.customFaviconUrl;
+  } else if (settings.faviconType && PRESET_FAVICONS[settings.faviconType]) {
+    faviconUrl = PRESET_FAVICONS[settings.faviconType];
+  } else {
+    faviconUrl = PRESET_FAVICONS.scales;
+  }
+
+  let link = document.querySelector("link[rel*='icon']");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
+  }
+  link.href = faviconUrl;
+};
+
+// Helper for local storage retrieval (only used in offline demo mode)
 const getLocal = (key, fallback) => {
   try {
     const raw = localStorage.getItem(key);
@@ -56,42 +81,51 @@ const setLocal = (key, data) => {
   }
 };
 
-// Initialize default storage in browser if empty
+// Initialize data store
+// IMPORTANT: Does NOT seed simulated cases/expenses/advances into Firestore!
 export const initializeDataStore = async () => {
   if (isFirebaseConfigured() && db) {
     try {
-      // Check if collections exist, seed settings if missing
+      // Check if firm settings exist in Firestore; only create initial firm settings if not present
       const settingsRef = doc(db, "system", "firm_settings");
       const settingsSnap = await getDoc(settingsRef);
       if (!settingsSnap.exists()) {
         await setDoc(settingsRef, INITIAL_SETTINGS);
       }
+      const loaded = settingsSnap.exists() ? settingsSnap.data() : INITIAL_SETTINGS;
+      applyFaviconAndTitle(loaded);
     } catch (err) {
       console.warn("Could not check/seed remote Firestore settings:", err);
     }
   } else {
-    getLocal(STORAGE_KEYS.CASES, INITIAL_CASES);
-    getLocal(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
-    getLocal(STORAGE_KEYS.ADVANCES, INITIAL_ADVANCES);
-    getLocal(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
-    getLocal(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
-    getLocal(STORAGE_KEYS.USERS, INITIAL_USERS);
+    // Local offline demo mode
+    getLocal(STORAGE_KEYS.CASES, OFFLINE_DEMO_CASES);
+    getLocal(STORAGE_KEYS.EXPENSES, []);
+    getLocal(STORAGE_KEYS.ADVANCES, []);
+    getLocal(STORAGE_KEYS.CATEGORIES, STANDARD_LEGAL_CATEGORIES);
+    const s = getLocal(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+    getLocal(STORAGE_KEYS.USERS, OFFLINE_DEMO_USERS);
+    applyFaviconAndTitle(s);
   }
 };
 
-// ==================== SETTINGS ====================
+// ==================== SETTINGS & BRANDING ====================
 export const getSettings = async () => {
   if (isFirebaseConfigured() && db) {
     try {
       const snap = await getDoc(doc(db, "system", "firm_settings"));
       if (snap.exists()) {
-        return snap.data();
+        const data = snap.data();
+        applyFaviconAndTitle(data);
+        return data;
       }
     } catch (e) {
       console.warn("Remote getSettings failed, using local fallback", e);
     }
   }
-  return getLocal(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+  const s = getLocal(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+  applyFaviconAndTitle(s);
+  return s;
 };
 
 export const updateSettings = async (newSettings) => {
@@ -104,22 +138,24 @@ export const updateSettings = async (newSettings) => {
     }
   }
   setLocal(STORAGE_KEYS.SETTINGS, merged);
+  applyFaviconAndTitle(merged);
   return merged;
 };
 
 // ==================== CASES ====================
+// Returns strictly live cases from Firestore when connected. No simulated data!
 export const getCases = async () => {
   if (isFirebaseConfigured() && db) {
     try {
       const q = query(collection(db, "cases"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (list.length > 0) return list;
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
-      console.warn("Remote getCases failed, falling back to local storage:", e);
+      console.warn("Remote getCases failed:", e);
+      return [];
     }
   }
-  return getLocal(STORAGE_KEYS.CASES, INITIAL_CASES);
+  return getLocal(STORAGE_KEYS.CASES, OFFLINE_DEMO_CASES);
 };
 
 export const addCase = async (caseData) => {
@@ -131,14 +167,10 @@ export const addCase = async (caseData) => {
   };
 
   if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, "cases", newCase.id), newCase);
-    } catch (e) {
-      console.error("Remote addCase failed:", e);
-    }
+    await setDoc(doc(db, "cases", newCase.id), newCase);
   }
 
-  const localCases = getLocal(STORAGE_KEYS.CASES, INITIAL_CASES);
+  const localCases = getLocal(STORAGE_KEYS.CASES, []);
   const updated = [newCase, ...localCases];
   setLocal(STORAGE_KEYS.CASES, updated);
   return newCase;
@@ -146,13 +178,9 @@ export const addCase = async (caseData) => {
 
 export const updateCase = async (id, updates) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await updateDoc(doc(db, "cases", id), updates);
-    } catch (e) {
-      console.error("Remote updateCase failed:", e);
-    }
+    await updateDoc(doc(db, "cases", id), updates);
   }
-  const localCases = getLocal(STORAGE_KEYS.CASES, INITIAL_CASES);
+  const localCases = getLocal(STORAGE_KEYS.CASES, []);
   const updated = localCases.map(c => c.id === id ? { ...c, ...updates } : c);
   setLocal(STORAGE_KEYS.CASES, updated);
   return updated.find(c => c.id === id);
@@ -160,19 +188,16 @@ export const updateCase = async (id, updates) => {
 
 export const deleteCase = async (id) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await deleteDoc(doc(db, "cases", id));
-    } catch (e) {
-      console.error("Remote deleteCase failed:", e);
-    }
+    await deleteDoc(doc(db, "cases", id));
   }
-  const localCases = getLocal(STORAGE_KEYS.CASES, INITIAL_CASES);
+  const localCases = getLocal(STORAGE_KEYS.CASES, []);
   const filtered = localCases.filter(c => c.id !== id);
   setLocal(STORAGE_KEYS.CASES, filtered);
   return true;
 };
 
 // ==================== EXPENSES ====================
+// Returns strictly live expenses from Firestore when connected. No simulated data!
 export const getExpenses = async (filters = {}) => {
   let list = [];
   if (isFirebaseConfigured() && db) {
@@ -181,11 +206,11 @@ export const getExpenses = async (filters = {}) => {
       const snapshot = await getDocs(q);
       list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
-      console.warn("Remote getExpenses failed, reading local:", e);
-      list = getLocal(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
+      console.warn("Remote getExpenses failed:", e);
+      list = [];
     }
   } else {
-    list = getLocal(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
+    list = getLocal(STORAGE_KEYS.EXPENSES, []);
   }
 
   // Apply filters
@@ -230,19 +255,13 @@ export const addExpense = async (expenseData) => {
   };
 
   if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, "expenses", newExpense.id), newExpense);
-    } catch (e) {
-      console.error("Remote addExpense failed:", e);
-    }
+    await setDoc(doc(db, "expenses", newExpense.id), newExpense);
   }
 
-  // Update local expenses
-  const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
+  const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
   const updatedExpenses = [newExpense, ...localExpenses];
   setLocal(STORAGE_KEYS.EXPENSES, updatedExpenses);
 
-  // If this expense is funded from an advance, recalculate advance usedAmount
   if (newExpense.advanceId && (newExpense.paymentMode === "firm_advance" || newExpense.advanceDeducted)) {
     await updateAdvanceUsage(newExpense.advanceId);
   }
@@ -252,19 +271,14 @@ export const addExpense = async (expenseData) => {
 
 export const updateExpense = async (id, updates) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await updateDoc(doc(db, "expenses", id), updates);
-    } catch (e) {
-      console.error("Remote updateExpense failed:", e);
-    }
+    await updateDoc(doc(db, "expenses", id), updates);
   }
 
-  const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
+  const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
   const existing = localExpenses.find(e => e.id === id);
   const updatedExpenses = localExpenses.map(e => e.id === id ? { ...e, ...updates } : e);
   setLocal(STORAGE_KEYS.EXPENSES, updatedExpenses);
 
-  // Reconcile advances if advanceId was affected
   if (existing && existing.advanceId) {
     await updateAdvanceUsage(existing.advanceId);
   }
@@ -276,15 +290,11 @@ export const updateExpense = async (id, updates) => {
 };
 
 export const deleteExpense = async (id) => {
-  const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
+  const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
   const target = localExpenses.find(e => e.id === id);
 
   if (isFirebaseConfigured() && db) {
-    try {
-      await deleteDoc(doc(db, "expenses", id));
-    } catch (e) {
-      console.error("Remote deleteExpense failed:", e);
-    }
+    await deleteDoc(doc(db, "expenses", id));
   }
 
   const filtered = localExpenses.filter(e => e.id !== id);
@@ -298,6 +308,7 @@ export const deleteExpense = async (id) => {
 };
 
 // ==================== ADVANCES ====================
+// Returns strictly live advances from Firestore when connected. No simulated data!
 export const getAdvances = async (staffId = null) => {
   let list = [];
   if (isFirebaseConfigured() && db) {
@@ -306,11 +317,11 @@ export const getAdvances = async (staffId = null) => {
       const snapshot = await getDocs(q);
       list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
-      console.warn("Remote getAdvances failed, reading local:", e);
-      list = getLocal(STORAGE_KEYS.ADVANCES, INITIAL_ADVANCES);
+      console.warn("Remote getAdvances failed:", e);
+      list = [];
     }
   } else {
-    list = getLocal(STORAGE_KEYS.ADVANCES, INITIAL_ADVANCES);
+    list = getLocal(STORAGE_KEYS.ADVANCES, []);
   }
 
   if (staffId && staffId !== "ALL") {
@@ -331,14 +342,10 @@ export const addAdvance = async (advanceData) => {
   };
 
   if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, "advances", newAdvance.id), newAdvance);
-    } catch (e) {
-      console.error("Remote addAdvance failed:", e);
-    }
+    await setDoc(doc(db, "advances", newAdvance.id), newAdvance);
   }
 
-  const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, INITIAL_ADVANCES);
+  const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
   const updated = [newAdvance, ...localAdvances];
   setLocal(STORAGE_KEYS.ADVANCES, updated);
   return newAdvance;
@@ -346,13 +353,9 @@ export const addAdvance = async (advanceData) => {
 
 export const updateAdvance = async (id, updates) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await updateDoc(doc(db, "advances", id), updates);
-    } catch (e) {
-      console.error("Remote updateAdvance failed:", e);
-    }
+    await updateDoc(doc(db, "advances", id), updates);
   }
-  const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, INITIAL_ADVANCES);
+  const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
   const updated = localAdvances.map(a => a.id === id ? { ...a, ...updates } : a);
   setLocal(STORAGE_KEYS.ADVANCES, updated);
   return updated.find(a => a.id === id);
@@ -360,28 +363,50 @@ export const updateAdvance = async (id, updates) => {
 
 export const deleteAdvance = async (id) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await deleteDoc(doc(db, "advances", id));
-    } catch (e) {
-      console.error("Remote deleteAdvance failed:", e);
-    }
+    await deleteDoc(doc(db, "advances", id));
   }
-  const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, INITIAL_ADVANCES);
+  const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
   const filtered = localAdvances.filter(a => a.id !== id);
   setLocal(STORAGE_KEYS.ADVANCES, filtered);
   return true;
 };
 
-// Helper: updates the usedAmount of an advance based on all expenses tagged with it
+// Reconciles advance usage
 export const updateAdvanceUsage = async (advanceId) => {
   if (!advanceId) return;
 
-  const allExpenses = getLocal(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
+  let allExpenses = [];
+  if (isFirebaseConfigured() && db) {
+    try {
+      const q = query(collection(db, "expenses"));
+      const snap = await getDocs(q);
+      allExpenses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      allExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
+    }
+  } else {
+    allExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
+  }
+
   const matchingExpenses = allExpenses.filter(e => e.advanceId === advanceId);
   const totalUsed = matchingExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-  const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, INITIAL_ADVANCES);
-  const targetAdvance = localAdvances.find(a => a.id === advanceId);
+  let targetAdvance = null;
+  if (isFirebaseConfigured() && db) {
+    try {
+      const advSnap = await getDoc(doc(db, "advances", advanceId));
+      if (advSnap.exists()) {
+        targetAdvance = advSnap.data();
+      }
+    } catch (e) {
+      console.warn("Could not read advance from Firestore:", e);
+    }
+  }
+
+  if (!targetAdvance) {
+    const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
+    targetAdvance = localAdvances.find(a => a.id === advanceId);
+  }
 
   if (targetAdvance) {
     const isSettled = totalUsed >= targetAdvance.amount;
@@ -398,6 +423,7 @@ export const updateAdvanceUsage = async (advanceId) => {
       }
     }
 
+    const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
     const updatedAdvances = localAdvances.map(a => a.id === advanceId ? { ...a, ...updates } : a);
     setLocal(STORAGE_KEYS.ADVANCES, updatedAdvances);
   }
@@ -410,12 +436,13 @@ export const getCategories = async () => {
       const q = query(collection(db, "categories"));
       const snapshot = await getDocs(q);
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (list.length > 0) return list;
+      return list;
     } catch (e) {
-      console.warn("Remote getCategories failed, reading local:", e);
+      console.warn("Remote getCategories failed:", e);
+      return [];
     }
   }
-  return getLocal(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
+  return getLocal(STORAGE_KEYS.CATEGORIES, STANDARD_LEGAL_CATEGORIES);
 };
 
 export const addCategory = async (catData) => {
@@ -425,28 +452,30 @@ export const addCategory = async (catData) => {
   };
 
   if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, "categories", newCat.id), newCat);
-    } catch (e) {
-      console.error("Remote addCategory failed:", e);
-    }
+    await setDoc(doc(db, "categories", newCat.id), newCat);
   }
 
-  const localCategories = getLocal(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
+  const localCategories = getLocal(STORAGE_KEYS.CATEGORIES, []);
   const updated = [...localCategories, newCat];
   setLocal(STORAGE_KEYS.CATEGORIES, updated);
   return newCat;
 };
 
-export const updateCategory = async (id, updates) => {
-  if (isFirebaseConfigured() && db) {
-    try {
-      await updateDoc(doc(db, "categories", id), updates);
-    } catch (e) {
-      console.error("Remote updateCategory failed:", e);
+export const seedStandardCategories = async () => {
+  for (const cat of STANDARD_LEGAL_CATEGORIES) {
+    if (isFirebaseConfigured() && db) {
+      await setDoc(doc(db, "categories", cat.id), cat);
     }
   }
-  const localCategories = getLocal(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
+  setLocal(STORAGE_KEYS.CATEGORIES, STANDARD_LEGAL_CATEGORIES);
+  return STANDARD_LEGAL_CATEGORIES;
+};
+
+export const updateCategory = async (id, updates) => {
+  if (isFirebaseConfigured() && db) {
+    await updateDoc(doc(db, "categories", id), updates);
+  }
+  const localCategories = getLocal(STORAGE_KEYS.CATEGORIES, []);
   const updated = localCategories.map(c => c.id === id ? { ...c, ...updates } : c);
   setLocal(STORAGE_KEYS.CATEGORIES, updated);
   return updated.find(c => c.id === id);
@@ -454,13 +483,9 @@ export const updateCategory = async (id, updates) => {
 
 export const deleteCategory = async (id) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await deleteDoc(doc(db, "categories", id));
-    } catch (e) {
-      console.error("Remote deleteCategory failed:", e);
-    }
+    await deleteDoc(doc(db, "categories", id));
   }
-  const localCategories = getLocal(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
+  const localCategories = getLocal(STORAGE_KEYS.CATEGORIES, []);
   const filtered = localCategories.filter(c => c.id !== id);
   setLocal(STORAGE_KEYS.CATEGORIES, filtered);
   return true;
@@ -471,24 +496,20 @@ export const getUsers = async () => {
   if (isFirebaseConfigured() && db) {
     try {
       const snapshot = await getDocs(collection(db, "users"));
-      const list = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
-      if (list.length > 0) return list;
+      return snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
     } catch (e) {
-      console.warn("Remote getUsers failed, reading local:", e);
+      console.warn("Remote getUsers failed:", e);
+      return [];
     }
   }
-  return getLocal(STORAGE_KEYS.USERS, INITIAL_USERS);
+  return getLocal(STORAGE_KEYS.USERS, OFFLINE_DEMO_USERS);
 };
 
 export const saveUser = async (userData) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, "users", userData.uid), userData, { merge: true });
-    } catch (e) {
-      console.error("Remote saveUser failed:", e);
-    }
+    await setDoc(doc(db, "users", userData.uid), userData, { merge: true });
   }
-  const localUsers = getLocal(STORAGE_KEYS.USERS, INITIAL_USERS);
+  const localUsers = getLocal(STORAGE_KEYS.USERS, OFFLINE_DEMO_USERS);
   const existingIdx = localUsers.findIndex(u => u.uid === userData.uid || u.email === userData.email);
   let updatedUsers;
   if (existingIdx >= 0) {
@@ -503,13 +524,9 @@ export const saveUser = async (userData) => {
 
 export const updateUserRole = async (uid, role) => {
   if (isFirebaseConfigured() && db) {
-    try {
-      await updateDoc(doc(db, "users", uid), { role });
-    } catch (e) {
-      console.error("Remote updateUserRole failed:", e);
-    }
+    await updateDoc(doc(db, "users", uid), { role });
   }
-  const localUsers = getLocal(STORAGE_KEYS.USERS, INITIAL_USERS);
+  const localUsers = getLocal(STORAGE_KEYS.USERS, OFFLINE_DEMO_USERS);
   const updated = localUsers.map(u => u.uid === uid ? { ...u, role } : u);
   setLocal(STORAGE_KEYS.USERS, updated);
   return true;

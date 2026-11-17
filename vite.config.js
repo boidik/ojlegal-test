@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  base: './', // Ensures assets load correctly on GitHub Pages (https://boidik.github.io/ojlegal-test/) and root domains
   build: {
     chunkSizeWarningLimit: 1200,
     rollupOptions: {

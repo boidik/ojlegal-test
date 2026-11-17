@@ -17,10 +17,12 @@ import {
   addCategory as dbAddCategory,
   updateCategory as dbUpdateCategory,
   deleteCategory as dbDeleteCategory,
+  seedStandardCategories as dbSeedStandardCategories,
   getSettings,
   updateSettings as dbUpdateSettings,
   getUsers,
-  updateUserRole as dbUpdateUserRole
+  updateUserRole as dbUpdateUserRole,
+  applyFaviconAndTitle
 } from "../services/dataStore";
 import { isFirebaseConfigured, getActiveFirebaseConfig } from "../services/firebase";
 
@@ -39,7 +41,7 @@ export const AppProvider = ({ children }) => {
   const [notification, setNotification] = useState({
     open: false,
     message: "",
-    severity: "info", // "success" | "error" | "warning" | "info"
+    severity: "info",
   });
 
   const showNotification = (message, severity = "info") => {
@@ -70,6 +72,7 @@ export const AppProvider = ({ children }) => {
       setCategories(fetchedCategories);
       setSettings(fetchedSettings);
       setUsers(fetchedUsers);
+      applyFaviconAndTitle(fetchedSettings);
     } catch (err) {
       console.error("Error refreshing data:", err);
       showNotification("Error loading data: " + err.message, "error");
@@ -197,6 +200,16 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const handleSeedStandardCategories = async () => {
+    try {
+      await dbSeedStandardCategories();
+      await refreshData();
+      showNotification("Standard legal & technical categories added to Firestore!", "success");
+    } catch (e) {
+      showNotification("Failed to seed categories: " + e.message, "error");
+    }
+  };
+
   const handleUpdateCategory = async (id, data) => {
     try {
       const updated = await dbUpdateCategory(id, data);
@@ -223,7 +236,8 @@ export const AppProvider = ({ children }) => {
     try {
       const updated = await dbUpdateSettings(data);
       setSettings(updated);
-      showNotification("System settings saved successfully!", "success");
+      applyFaviconAndTitle(updated);
+      showNotification("Firm details, layout & favicon updated!", "success");
       return updated;
     } catch (e) {
       showNotification("Failed to save settings: " + e.message, "error");
@@ -270,6 +284,7 @@ export const AppProvider = ({ children }) => {
         deleteCase: handleDeleteCase,
         // Category actions
         addCategory: handleAddCategory,
+        seedStandardCategories: handleSeedStandardCategories,
         updateCategory: handleUpdateCategory,
         deleteCategory: handleDeleteCategory,
         // Settings & Users
