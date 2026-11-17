@@ -11,12 +11,6 @@ import {
   Avatar,
   Divider,
   ListItemIcon,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Alert,
 } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
@@ -34,46 +28,15 @@ import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { useAppTheme } from "../context/ThemeContext";
 
-const MASTER_ADMIN_PASSCODE = "ojlegal2026";
-
 export default function Navbar({ activeTab, setActiveTab }) {
-  const { currentUser, logout, updateLocalRole, isSoftwareAdmin, isAccountsAdmin } = useAuth();
-  const { settings, updateUserRole, showNotification } = useApp();
+  const { currentUser, logout, isSoftwareAdmin, isAccountsAdmin } = useAuth();
+  const { settings } = useApp();
   const { mode, toggleColorMode } = useAppTheme();
 
   const [anchorElUser, setAnchorElUser] = useState(null);
-  const [claimModalOpen, setClaimModalOpen] = useState(false);
-  const [passcode, setPasscode] = useState("");
-  const [passcodeError, setPasscodeError] = useState("");
-  const [claiming, setClaiming] = useState(false);
 
   const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
   const handleCloseUserMenu = () => setAnchorElUser(null);
-
-  const handleClaimAdmin = async () => {
-    if (passcode.trim().toLowerCase() !== MASTER_ADMIN_PASSCODE) {
-      setPasscodeError("Invalid Master Passcode. Please check and try again.");
-      return;
-    }
-
-    setClaiming(true);
-    setPasscodeError("");
-
-    try {
-      if (currentUser?.uid) {
-        await updateUserRole(currentUser.uid, "software_admin");
-        updateLocalRole("software_admin");
-        setActiveTab("software_admin");
-        showNotification("Master Software Admin access unlocked! Welcome to your admin console.", "success");
-        setClaimModalOpen(false);
-        setPasscode("");
-      }
-    } catch (e) {
-      setPasscodeError(e.message || "Failed to update role in database.");
-    } finally {
-      setClaiming(false);
-    }
-  };
 
   // Render configured icon or logo image
   const renderNavbarIcon = () => {
@@ -286,21 +249,6 @@ export default function Navbar({ activeTab, setActiveTab }) {
               </Box>
               <Divider />
 
-              {/* If not software admin yet, allow unlocking with master passcode */}
-              {!isSoftwareAdmin && (
-                <MenuItem
-                  onClick={() => {
-                    handleCloseUserMenu();
-                    setClaimModalOpen(true);
-                    setPasscodeError("");
-                  }}
-                  sx={{ color: "primary.main", fontWeight: 600 }}
-                >
-                  <ListItemIcon><VpnKeyIcon fontSize="small" color="primary" /></ListItemIcon>
-                  Unlock Software Admin
-                </MenuItem>
-              )}
-
               <MenuItem onClick={() => { handleCloseUserMenu(); logout(); }}>
                 <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon>
                 <Typography color="error" fontWeight={600}>Sign Out</Typography>
@@ -309,44 +257,6 @@ export default function Navbar({ activeTab, setActiveTab }) {
           </Box>
         </Toolbar>
       </AppBar>
-
-      {/* Unlock Admin Passcode Modal */}
-      <Dialog open={claimModalOpen} onClose={() => setClaimModalOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <VpnKeyIcon color="primary" />
-          <Typography variant="h6" fontWeight={700}>
-            Unlock Software Admin Access
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Enter the law firm master passcode to activate <strong>Software Admin</strong> master privileges for account <strong>{currentUser?.email}</strong>.
-          </Typography>
-
-          <TextField
-            fullWidth
-            size="small"
-            type="password"
-            label="Master Passcode"
-            placeholder="Enter law firm passcode"
-            value={passcode}
-            onChange={(e) => setPasscode(e.target.value)}
-            autoFocus
-          />
-
-          {passcodeError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {passcodeError}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setClaimModalOpen(false)} color="inherit">Cancel</Button>
-          <Button variant="contained" onClick={handleClaimAdmin} disabled={claiming || !passcode}>
-            {claiming ? "Verifying..." : "Unlock Master Access"}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 }

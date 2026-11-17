@@ -1450,11 +1450,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isAuthenticated() { return request.auth != null; }
     function isMasterAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == 'advocate@boidikghosh.in' ||
-        request.auth.token.email.matches('.*boidik.*') ||
-        request.auth.token.email == 'admin@ojlegal.com'
-      );
+      return isAuthenticated() && request.auth.token.email == 'advocate@boidikghosh.in';
     }
     function getUserRole() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
@@ -1512,11 +1508,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isAuthenticated() { return request.auth != null; }
     function isMasterAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == 'advocate@boidikghosh.in' ||
-        request.auth.token.email.matches('.*boidik.*') ||
-        request.auth.token.email == 'admin@ojlegal.com'
-      );
+      return isAuthenticated() && request.auth.token.email == 'advocate@boidikghosh.in';
     }
     function getUserRole() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?

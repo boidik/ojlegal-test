@@ -7,13 +7,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Direct token check for Master Admin email (verified at the Auth token level)
+    // Direct token check SOLELY for advocate@boidikghosh.in (Sole Master Admin)
     function isMasterAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == 'advocate@boidikghosh.in' ||
-        request.auth.token.email.matches('.*boidik.*') ||
-        request.auth.token.email == 'admin@ojlegal.com'
-      );
+      return isAuthenticated() && request.auth.token.email == 'advocate@boidikghosh.in';
     }
     
     // Safe lookup for user role in Firestore users collection

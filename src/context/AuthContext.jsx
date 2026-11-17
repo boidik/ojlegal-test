@@ -57,12 +57,13 @@ export const AuthProvider = ({ children }) => {
             const userSnap = await getDoc(userRef);
 
             const userEmail = (firebaseUser.email || "").toLowerCase().trim();
-            const isOwner = userEmail === "advocate@boidikghosh.in" ||
-                            userEmail.includes("boidik") ||
-                            userEmail.includes("admin@ojlegal");
+            // Strictly and solely advocate@boidikghosh.in is granted automatic Master Software Admin access
+            const isOwner = userEmail === "advocate@boidikghosh.in";
 
             if (userSnap.exists()) {
               const userData = userSnap.data();
+              // advocate@boidikghosh.in is always software_admin.
+              // All other users strictly receive their role as assigned by advocate@boidikghosh.in in Firestore.
               let assignedRole = isOwner ? "software_admin" : (userData.role || "staff");
               if (isOwner && userData.role !== "software_admin") {
                 assignedRole = "software_admin";
@@ -74,27 +75,20 @@ export const AuthProvider = ({ children }) => {
               setCurrentUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
-                displayName: userData.displayName || firebaseUser.displayName || (userEmail === "advocate@boidikghosh.in" ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
+                displayName: userData.displayName || firebaseUser.displayName || (isOwner ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
                 role: assignedRole,
                 designation: assignedRole === "software_admin" ? "Systems Administrator / Managing Partner" : (userData.designation || "Legal Associate"),
                 phone: userData.phone || firebaseUser.phoneNumber || "",
                 isActive: userData.isActive !== false,
               });
             } else {
+              // New user registration: only advocate@boidikghosh.in is software_admin, everyone else starts as staff
               let role = isOwner ? "software_admin" : "staff";
-              if (!isOwner) {
-                try {
-                  const allUsersSnap = await getDocs(collection(db, "users"));
-                  if (allUsersSnap.empty) {
-                    role = "software_admin";
-                  }
-                } catch (e) {}
-              }
 
               const newProfile = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
-                displayName: firebaseUser.displayName || (userEmail === "advocate@boidikghosh.in" ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
+                displayName: firebaseUser.displayName || (isOwner ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
                 role: role,
                 designation: role === "software_admin" ? "Systems Administrator / Managing Partner" : "Legal Staff Associate",
                 phone: firebaseUser.phoneNumber || "",
@@ -108,13 +102,11 @@ export const AuthProvider = ({ children }) => {
           } catch (err) {
             console.error("Error loading user profile:", err);
             const userEmail = (firebaseUser.email || "").toLowerCase().trim();
-            const isOwner = userEmail === "advocate@boidikghosh.in" ||
-                            userEmail.includes("boidik") ||
-                            userEmail.includes("admin@ojlegal");
+            const isOwner = userEmail === "advocate@boidikghosh.in";
             setCurrentUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName || (userEmail === "advocate@boidikghosh.in" ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
+              displayName: firebaseUser.displayName || (isOwner ? "Adv. Boidik Ghosh" : firebaseUser.email.split("@")[0]),
               role: isOwner ? "software_admin" : "staff",
               designation: isOwner ? "Systems Administrator / Managing Partner" : "Legal Staff Associate",
             });
