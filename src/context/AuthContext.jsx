@@ -17,15 +17,35 @@ import { doc, getDoc, setDoc, getDocs, collection } from "firebase/firestore";
 
 const AuthContext = createContext();
 
+const formatAuthError = (err) => {
+  if (!err) return "An unknown error occurred.";
+  if (err.code === "auth/configuration-not-found") {
+    return "Firebase Authentication has not been enabled yet in your Firebase Console. Go to Firebase Console (https://console.firebase.google.com/) > Select 'ojlegal-test' > Click 'Authentication' in left menu > Click 'Get Started' > Enable 'Email/Password' and 'Google'.";
+  }
+  if (err.code === "auth/unauthorized-domain") {
+    return "This domain (boidik.github.io) needs to be authorized for Google Sign-In. Go to Firebase Console > Authentication > Settings tab > Authorized Domains > Click 'Add domain' and enter 'boidik.github.io'.";
+  }
+  if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+    return "Invalid email or password. Please verify your credentials or click 'New Associate? Register'.";
+  }
+  if (err.code === "auth/email-already-in-use") {
+    return "This email is already registered. Please sign in instead.";
+  }
+  if (err.code === "auth/weak-password") {
+    return "Password must be at least 6 characters long.";
+  }
+  if (err.code === "auth/popup-closed-by-user") {
+    return "Google sign-in popup was closed before completing.";
+  }
+  return err.message || "Authentication error.";
+};
+
 export const AuthProvider = ({ children }) => {
-  // Current user starts as null! Strict authentication required.
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  // Monitor real Firebase Auth state
   useEffect(() => {
-    // Clear any obsolete mock session
     localStorage.removeItem("lex_active_user");
     localStorage.removeItem("oj_active_user");
 
@@ -33,7 +53,6 @@ export const AuthProvider = ({ children }) => {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
           try {
-            // Fetch real user profile from Firestore
             const userRef = doc(db, "users", firebaseUser.uid);
             const userSnap = await getDoc(userRef);
 
@@ -44,23 +63,18 @@ export const AuthProvider = ({ children }) => {
                 email: firebaseUser.email,
                 displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email.split("@")[0],
                 role: userData.role || "staff",
-                designation: userData.designation || "Legal Associate",
+                designation: userData.designation || (userData.role === "software_admin" ? "Systems Administrator" : userData.role === "accounts_admin" ? "Accounts Head / Boss" : "Legal Associate"),
                 phone: userData.phone || firebaseUser.phoneNumber || "",
                 isActive: userData.isActive !== false,
               });
             } else {
-              // First time user registration in Firestore
-              // If there are zero existing users in Firestore, assign software_admin to the creator.
-              // All subsequent users default to staff.
               let role = "staff";
               try {
                 const allUsersSnap = await getDocs(collection(db, "users"));
                 if (allUsersSnap.empty) {
                   role = "software_admin";
                 }
-              } catch (e) {
-                console.warn("Could not check users count:", e);
-              }
+              } catch (e) {}
 
               const newProfile = {
                 uid: firebaseUser.uid,
@@ -77,8 +91,7 @@ export const AuthProvider = ({ children }) => {
               setCurrentUser(newProfile);
             }
           } catch (err) {
-            console.error("Error loading user profile from Firestore:", err);
-            // Fallback basic user object
+            console.error("Error loading user profile:", err);
             setCurrentUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
@@ -87,18 +100,20 @@ export const AuthProvider = ({ children }) => {
             });
           }
         } else {
-          // No user is logged in
           setCurrentUser(null);
         }
         setLoading(false);
       });
       return () => unsubscribe();
     } else {
-      // Not configured, still starts as null
       setCurrentUser(null);
       setLoading(false);
     }
   }, []);
+
+  const updateLocalRole = (newRole) => {
+    setCurrentUser((prev) => (prev ? { ...prev, role: newRole } : null));
+  };
 
   // Google Sign-In
   const loginWithGoogle = async () => {
@@ -108,11 +123,12 @@ export const AuthProvider = ({ children }) => {
         const result = await signInWithPopup(auth, googleProvider);
         return { success: true, user: result.user };
       } catch (err) {
-        setAuthError(err.message);
-        return { success: false, error: err.message };
+        const formatted = formatAuthError(err);
+        setAuthError(formatted);
+        return { success: false, error: formatted };
       }
     } else {
-      return { success: false, error: "Firebase Authentication is not configured." };
+      return { success: false, error: "Firebase Authentication is not initialized." };
     }
   };
 
@@ -124,15 +140,12 @@ export const AuthProvider = ({ children }) => {
         const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
         return { success: true, user: cred.user };
       } catch (err) {
-        let msg = err.message;
-        if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-          msg = "Invalid email or password. Please verify your credentials.";
-        }
-        setAuthError(msg);
-        return { success: false, error: msg };
+        const formatted = formatAuthError(err);
+        setAuthError(formatted);
+        return { success: false, error: formatted };
       }
     } else {
-      return { success: false, error: "Firebase Authentication is not configured." };
+      return { success: false, error: "Firebase Authentication is not initialized." };
     }
   };
 
@@ -143,7 +156,6 @@ export const AuthProvider = ({ children }) => {
       try {
         const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
         
-        // Determine role: if first user in Firestore, make software_admin, otherwise staff
         let role = "staff";
         try {
           const allUsersSnap = await getDocs(collection(db, "users"));
@@ -166,17 +178,12 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser(newProfile);
         return { success: true, user: newProfile };
       } catch (err) {
-        let msg = err.message;
-        if (err.code === "auth/email-already-in-use") {
-          msg = "This email is already registered. Please sign in instead.";
-        } else if (err.code === "auth/weak-password") {
-          msg = "Password should be at least 6 characters long.";
-        }
-        setAuthError(msg);
-        return { success: false, error: msg };
+        const formatted = formatAuthError(err);
+        setAuthError(formatted);
+        return { success: false, error: formatted };
       }
     } else {
-      return { success: false, error: "Firebase Authentication is not configured." };
+      return { success: false, error: "Firebase Authentication is not initialized." };
     }
   };
 
@@ -187,7 +194,8 @@ export const AuthProvider = ({ children }) => {
         await sendPasswordResetEmail(auth, email.trim());
         return { success: true, message: "Password reset link sent to " + email };
       } catch (err) {
-        return { success: false, error: err.message };
+        const formatted = formatAuthError(err);
+        return { success: false, error: formatted };
       }
     } else {
       return { success: false, error: "Firebase is not configured." };
@@ -213,6 +221,7 @@ export const AuthProvider = ({ children }) => {
         registerWithEmail,
         resetPassword,
         logout,
+        updateLocalRole,
         isSoftwareAdmin: currentUser?.role === "software_admin",
         isAccountsAdmin: currentUser?.role === "accounts_admin",
         isStaff: currentUser?.role === "staff"

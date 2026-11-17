@@ -13,26 +13,28 @@ export default function App() {
   const { currentUser, loading, isSoftwareAdmin, isAccountsAdmin, isStaff } = useAuth();
   const { notification, closeNotification } = useApp();
 
-  // Tab state: "staff" | "accounts_admin" | "software_admin"
+  // Initialize activeTab directly based on user's role:
+  // Software Admin -> "software_admin"
+  // Accounts Admin (Boss) -> "accounts_admin"
+  // Staff Member -> "staff"
   const [activeTab, setActiveTab] = useState("staff");
 
-  // Strict role-based landing & authorization guard
+  // Whenever currentUser or their role changes, automatically direct them to their designated console
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.role) {
       if (currentUser.role === "software_admin") {
         setActiveTab("software_admin");
       } else if (currentUser.role === "accounts_admin") {
         setActiveTab("accounts_admin");
       } else {
-        // Staff can ONLY access the staff portal
         setActiveTab("staff");
       }
     }
-  }, [currentUser]);
+  }, [currentUser?.role, currentUser?.uid]);
 
-  // Prevent staff or boss from accessing unauthorized tabs
+  // Authorization Guard: Prevent staff or boss from accessing unauthorized tabs
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.role) {
       if (currentUser.role === "staff" && activeTab !== "staff") {
         setActiveTab("staff");
       }
@@ -40,7 +42,7 @@ export default function App() {
         setActiveTab("accounts_admin");
       }
     }
-  }, [activeTab, currentUser]);
+  }, [activeTab, currentUser?.role]);
 
   if (loading) {
     return (
@@ -71,15 +73,15 @@ export default function App() {
       {/* Main Page Area */}
       <Box component="main" sx={{ pb: 8 }}>
         <AnimatePresence mode="wait">
-          {activeTab === "staff" && (
+          {activeTab === "software_admin" && isSoftwareAdmin && (
             <motion.div
-              key="staff"
+              key="software"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <StaffExpensePage />
+              <SoftwareAdminPage />
             </motion.div>
           )}
 
@@ -95,15 +97,15 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === "software_admin" && isSoftwareAdmin && (
+          {activeTab === "staff" && (
             <motion.div
-              key="software"
+              key="staff"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <SoftwareAdminPage />
+              <StaffExpensePage />
             </motion.div>
           )}
         </AnimatePresence>

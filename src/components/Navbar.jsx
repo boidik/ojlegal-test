@@ -37,7 +37,7 @@ import { useAppTheme } from "../context/ThemeContext";
 const MASTER_ADMIN_PASSCODE = "ojlegal2026";
 
 export default function Navbar({ activeTab, setActiveTab }) {
-  const { currentUser, logout, isSoftwareAdmin, isAccountsAdmin } = useAuth();
+  const { currentUser, logout, updateLocalRole, isSoftwareAdmin, isAccountsAdmin } = useAuth();
   const { settings, updateUserRole, showNotification } = useApp();
   const { mode, toggleColorMode } = useAppTheme();
 
@@ -62,9 +62,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
     try {
       if (currentUser?.uid) {
         await updateUserRole(currentUser.uid, "software_admin");
-        currentUser.role = "software_admin";
+        updateLocalRole("software_admin");
         setActiveTab("software_admin");
-        showNotification("Master Software Admin access unlocked! All admin options are now visible.", "success");
+        showNotification("Master Software Admin access unlocked! Welcome to your admin console.", "success");
         setClaimModalOpen(false);
         setPasscode("");
       }
@@ -154,59 +154,62 @@ export default function Navbar({ activeTab, setActiveTab }) {
             </Box>
           </Box>
 
-          {/* Navigation Tabs - STRICTLY FILTERED BY ROLE */}
+          {/* Navigation Tabs - ORDERED ACCORDING TO ROLE PRIORITY */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            {/* Staff Expenses */}
-            <Button
-              startIcon={<AccountBalanceWalletIcon />}
-              onClick={() => setActiveTab("staff")}
-              sx={{
-                color: activeTab === "staff" ? "#ffffff" : "rgba(255,255,255,0.75)",
-                backgroundColor: activeTab === "staff" ? "rgba(255,255,255,0.18)" : "transparent",
-                borderRadius: 2,
-                px: 2,
-                fontWeight: 600,
-                "&:hover": { backgroundColor: "rgba(255,255,255,0.25)" },
-              }}
-            >
-              Staff Expenses
-            </Button>
-
-            {/* Accounts Admin (Boss) - ONLY visible to Boss and Software Admin */}
-            {(isAccountsAdmin || isSoftwareAdmin) && (
-              <Button
-                startIcon={<AssessmentIcon />}
-                onClick={() => setActiveTab("accounts_admin")}
-                sx={{
-                  color: activeTab === "accounts_admin" ? "#ffffff" : "rgba(255,255,255,0.75)",
-                  backgroundColor: activeTab === "accounts_admin" ? "rgba(255,255,255,0.18)" : "transparent",
-                  borderRadius: 2,
-                  px: 2,
-                  fontWeight: 600,
-                  "&:hover": { backgroundColor: "rgba(255,255,255,0.25)" },
-                }}
-              >
-                Accounts Admin (Boss)
-              </Button>
-            )}
-
-            {/* Software Admin - ONLY visible to Software Admin */}
+            {/* Software Admin Console (First priority for Software Admin) */}
             {isSoftwareAdmin && (
               <Button
                 startIcon={<SettingsIcon />}
                 onClick={() => setActiveTab("software_admin")}
                 sx={{
                   color: activeTab === "software_admin" ? "#ffffff" : "rgba(255,255,255,0.75)",
-                  backgroundColor: activeTab === "software_admin" ? "rgba(255,255,255,0.18)" : "transparent",
+                  backgroundColor: activeTab === "software_admin" ? "rgba(255,255,255,0.22)" : "transparent",
+                  border: activeTab === "software_admin" ? "1px solid rgba(255,255,255,0.35)" : "1px solid transparent",
                   borderRadius: 2,
                   px: 2,
-                  fontWeight: 600,
-                  "&:hover": { backgroundColor: "rgba(255,255,255,0.25)" },
+                  fontWeight: 700,
+                  "&:hover": { backgroundColor: "rgba(255,255,255,0.28)" },
                 }}
               >
                 Software Admin
               </Button>
             )}
+
+            {/* Accounts Admin (Boss) - Visible to Boss and Software Admin */}
+            {(isAccountsAdmin || isSoftwareAdmin) && (
+              <Button
+                startIcon={<AssessmentIcon />}
+                onClick={() => setActiveTab("accounts_admin")}
+                sx={{
+                  color: activeTab === "accounts_admin" ? "#ffffff" : "rgba(255,255,255,0.75)",
+                  backgroundColor: activeTab === "accounts_admin" ? "rgba(255,255,255,0.22)" : "transparent",
+                  border: activeTab === "accounts_admin" ? "1px solid rgba(255,255,255,0.35)" : "1px solid transparent",
+                  borderRadius: 2,
+                  px: 2,
+                  fontWeight: 700,
+                  "&:hover": { backgroundColor: "rgba(255,255,255,0.28)" },
+                }}
+              >
+                Accounts Admin (Boss)
+              </Button>
+            )}
+
+            {/* Staff Expenses - Available to all */}
+            <Button
+              startIcon={<AccountBalanceWalletIcon />}
+              onClick={() => setActiveTab("staff")}
+              sx={{
+                color: activeTab === "staff" ? "#ffffff" : "rgba(255,255,255,0.75)",
+                backgroundColor: activeTab === "staff" ? "rgba(255,255,255,0.22)" : "transparent",
+                border: activeTab === "staff" ? "1px solid rgba(255,255,255,0.35)" : "1px solid transparent",
+                borderRadius: 2,
+                px: 2,
+                fontWeight: 600,
+                "&:hover": { backgroundColor: "rgba(255,255,255,0.28)" },
+              }}
+            >
+              Staff Expenses
+            </Button>
           </Box>
 
           {/* Right Action Items: Profile & Sign Out */}
