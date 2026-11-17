@@ -524,7 +524,7 @@ export const saveUser = async (userData) => {
 
 export const updateUserRole = async (uid, role) => {
   if (isFirebaseConfigured() && db) {
-    await updateDoc(doc(db, "users", uid), { role });
+    await setDoc(doc(db, "users", uid), { role }, { merge: true });
   }
   const localUsers = getLocal(STORAGE_KEYS.USERS, OFFLINE_DEMO_USERS);
   const updated = localUsers.map(u => u.uid === uid ? { ...u, role } : u);
