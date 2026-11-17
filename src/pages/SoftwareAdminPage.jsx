@@ -1428,6 +1428,127 @@ export default function SoftwareAdminPage() {
                   </Button>
                 )}
               </Grid>
+
+              {/* Firestore Security Rules Display */}
+              <Grid item xs={12} sx={{ mt: 3 }}>
+                <Divider sx={{ mb: 2 }} />
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                      Firebase Console Firestore Security Rules
+                    </Typography>
+                    <Typography variant="caption" color="#334155" sx={{ display: "block" }}>
+                      Paste these rules into <strong>Firebase Console &gt; Firestore Database &gt; Rules tab</strong> to enable delete and edit permissions for <code>advocate@boidikghosh.in</code> and administrators.
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() { return request.auth != null; }
+    function isMasterAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'advocate@boidikghosh.in' ||
+        request.auth.token.email.matches('.*boidik.*') ||
+        request.auth.token.email == 'admin@ojlegal.com'
+      );
+    }
+    function getUserRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : 'staff';
+    }
+    function isSoftwareAdmin() {
+      return isAuthenticated() && (isMasterAdmin() || getUserRole() == 'software_admin');
+    }
+    function isAccountsAdmin() {
+      return isAuthenticated() && (isSoftwareAdmin() || getUserRole() == 'accounts_admin');
+    }
+    match /system/{document=**} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /cases/{caseId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /categories/{catId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /forums/{forumId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAccountsAdmin() || (isAuthenticated() && resource.data.staffId == request.auth.uid);
+    }
+    match /advances/{advanceId} {
+      allow read: if isAuthenticated() && (isAccountsAdmin() || resource.data.staffId == request.auth.uid);
+      allow write: if isAccountsAdmin();
+    }
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isSoftwareAdmin());
+      allow delete: if isSoftwareAdmin();
+    }
+  }
+}`);
+                      showNotification("Firestore Security Rules copied to clipboard!", "success");
+                    }}
+                    sx={{ fontWeight: 800 }}
+                  >
+                    Copy Rules to Clipboard
+                  </Button>
+                </Box>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#0f172a",
+                    color: "#38bdf8",
+                    fontFamily: "monospace",
+                    fontSize: "0.78rem",
+                    borderRadius: 2,
+                    overflowX: "auto",
+                    maxHeight: 220,
+                  }}
+                >
+                  <pre style={{ margin: 0 }}>{`// Publish these rules in Firebase Console > Firestore Database > Rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() { return request.auth != null; }
+    function isMasterAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'advocate@boidikghosh.in' ||
+        request.auth.token.email.matches('.*boidik.*') ||
+        request.auth.token.email == 'admin@ojlegal.com'
+      );
+    }
+    function getUserRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : 'staff';
+    }
+    function isSoftwareAdmin() {
+      return isAuthenticated() && (isMasterAdmin() || getUserRole() == 'software_admin');
+    }
+    function isAccountsAdmin() {
+      return isAuthenticated() && (isSoftwareAdmin() || getUserRole() == 'accounts_admin');
+    }
+    match /system/{document=**} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /cases/{caseId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /categories/{catId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /forums/{forumId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated(); allow create: if isAuthenticated();
+      allow update, delete: if isAccountsAdmin() || (isAuthenticated() && resource.data.staffId == request.auth.uid);
+    }
+    match /advances/{advanceId} {
+      allow read: if isAuthenticated() && (isAccountsAdmin() || resource.data.staffId == request.auth.uid);
+      allow write: if isAccountsAdmin();
+    }
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isSoftwareAdmin());
+      allow delete: if isSoftwareAdmin();
+    }
+  }
+}`}</pre>
+                </Paper>
+              </Grid>
             </Grid>
           </CardContent>
         </Card>

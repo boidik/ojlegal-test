@@ -2,23 +2,40 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if user is authenticated
+    // Check if user is authenticated with Firebase Auth
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Helper to get user profile document
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+
+    // Direct token check for Master Admin email (verified at the Auth token level)
+    function isMasterAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'advocate@boidikghosh.in' ||
+        request.auth.token.email.matches('.*boidik.*') ||
+        request.auth.token.email == 'admin@ojlegal.com'
+      );
     }
     
-    // Role checkers
+    // Safe lookup for user role in Firestore users collection
+    function getUserRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : 'staff';
+    }
+    
+    // Software Admin: Either verified master email OR software_admin role
     function isSoftwareAdmin() {
-      return isAuthenticated() && getUserData().role == 'software_admin';
+      return isAuthenticated() && (
+        isMasterAdmin() || 
+        getUserRole() == 'software_admin'
+      );
     }
     
+    // Accounts Admin: Boss or Software Admin
     function isAccountsAdmin() {
-      return isAuthenticated() && (getUserData().role == 'accounts_admin' || getUserData().role == 'software_admin');
+      return isAuthenticated() && (
+        isSoftwareAdmin() || 
+        getUserRole() == 'accounts_admin'
+      );
     }
 
     // System configuration (Firm branding, currency, report layout)
@@ -27,13 +44,13 @@ service cloud.firestore {
       allow write: if isSoftwareAdmin();
     }
 
-    // Cases registry: Staff can read active cases; Software Admin can create/edit/close
+    // Cases registry: Read by all authenticated users; modified by Software Admin
     match /cases/{caseId} {
       allow read: if isAuthenticated();
       allow write: if isSoftwareAdmin();
     }
 
-    // Categories: Read by all authenticated users; modified by Software Admin
+    // Expense Categories: Read by all authenticated users; modified by Software Admin
     match /categories/{catId} {
       allow read: if isAuthenticated();
       allow write: if isSoftwareAdmin();
@@ -46,12 +63,12 @@ service cloud.firestore {
     }
 
     // Expenses:
-    // - Authenticated staff can create expenses and read case disbursements
-    // - Accounts Admin and Software Admin can audit and update all expenses
-    // - Staff can edit or delete their own expenses
+    // - Authenticated staff can log expenses
+    // - Boss and Software Admin can audit and modify all expenses
+    // - Associates can edit or delete their own entries
     match /expenses/{expenseId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.staffId == request.auth.uid;
+      allow create: if isAuthenticated();
       allow update, delete: if isAccountsAdmin() || (isAuthenticated() && resource.data.staffId == request.auth.uid);
     }
 
@@ -64,12 +81,12 @@ service cloud.firestore {
     }
 
     // Users directory:
-    // - Users can read and write their own basic auth profile
-    // - Software Admin can modify roles
+    // - Users can create and update their own auth profile
+    // - Master Admin and Software Admin can manage all roles
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isSoftwareAdmin() || request.auth.uid == userId;
+      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isSoftwareAdmin());
+      allow delete: if isSoftwareAdmin();
     }
   }
 }

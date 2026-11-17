@@ -239,6 +239,13 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const formatFirestoreError = (action, err) => {
+    if (err?.code === "permission-denied" || err?.message?.includes("Missing or insufficient permissions")) {
+      return `${action}: Permission Denied. Please paste the updated rules into Firebase Console > Firestore Database > Rules (copy from Tab 6 in Software Admin).`;
+    }
+    return `${action}: ${err?.message || "Operation failed."}`;
+  };
+
   // ==================== FORUM / COURT HANDLERS ====================
   const handleAddForum = async (data) => {
     try {
@@ -247,7 +254,7 @@ export const AppProvider = ({ children }) => {
       showNotification("Court Forum registered.", "success");
       return added;
     } catch (e) {
-      showNotification("Failed to add forum: " + e.message, "error");
+      showNotification(formatFirestoreError("Failed to add forum", e), "error");
     }
   };
 
@@ -258,7 +265,7 @@ export const AppProvider = ({ children }) => {
       showNotification("Court Forum updated.", "success");
       return updated;
     } catch (e) {
-      showNotification("Failed to update forum: " + e.message, "error");
+      showNotification(formatFirestoreError("Failed to update forum", e), "error");
     }
   };
 
@@ -268,7 +275,7 @@ export const AppProvider = ({ children }) => {
       await refreshData();
       showNotification("Court Forum removed.", "info");
     } catch (e) {
-      showNotification("Failed to delete forum: " + e.message, "error");
+      showNotification(formatFirestoreError("Failed to delete forum", e), "error");
     }
   };
 
@@ -278,7 +285,7 @@ export const AppProvider = ({ children }) => {
       await refreshData();
       showNotification("Standard court forums populated in Firestore!", "success");
     } catch (e) {
-      showNotification("Failed to seed forums: " + e.message, "error");
+      showNotification(formatFirestoreError("Failed to seed forums", e), "error");
     }
   };
 
