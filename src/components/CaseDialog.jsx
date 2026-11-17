@@ -17,13 +17,15 @@ import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import { useApp } from "../context/AppContext";
 
 export default function CaseDialog({ open, onClose, caseToEdit = null }) {
-  const { addCase, updateCase } = useApp();
+  const { addCase, updateCase, forums } = useApp();
+
+  const defaultCourt = (forums && forums.length > 0) ? forums[0].name : "Delhi High Court";
 
   const defaultForm = {
     caseNumber: "",
     title: "",
     clientName: "",
-    court: "Delhi High Court",
+    court: defaultCourt,
     leadAttorney: "",
     status: "active",
     budget: "",
@@ -116,14 +118,26 @@ export default function CaseDialog({ open, onClose, caseToEdit = null }) {
                 size="small"
                 required
               >
-                <MenuItem value="Supreme Court of India">Supreme Court of India</MenuItem>
-                <MenuItem value="Delhi High Court">Delhi High Court</MenuItem>
-                <MenuItem value="Bombay High Court">Bombay High Court</MenuItem>
-                <MenuItem value="District & Sessions Court">District & Sessions Court</MenuItem>
-                <MenuItem value="National Company Law Tribunal (NCLT)">NCLT / NCLAT</MenuItem>
-                <MenuItem value="Arbitration Centre">Arbitration Centre</MenuItem>
-                <MenuItem value="Consumer Disputes Commission">Consumer Forum</MenuItem>
-                <MenuItem value="High Court / Commercial Division">High Court (Commercial)</MenuItem>
+                {/* Dynamically populate from forums maintained in Software Admin */}
+                {forums && forums.length > 0 ? (
+                  forums.map((f) => (
+                    <MenuItem key={f.id || f.name} value={f.name}>
+                      {f.name} {f.city ? `(${f.city})` : ""}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <>
+                    <MenuItem value="Supreme Court of India">Supreme Court of India</MenuItem>
+                    <MenuItem value="Delhi High Court">Delhi High Court</MenuItem>
+                    <MenuItem value="Bombay High Court">Bombay High Court</MenuItem>
+                    <MenuItem value="District & Sessions Court">District & Sessions Court</MenuItem>
+                    <MenuItem value="National Company Law Tribunal (NCLT)">NCLT / NCLAT</MenuItem>
+                  </>
+                )}
+                {/* Ensure current value exists in menu even if legacy */}
+                {formData.court && (!forums || !forums.some((f) => f.name === formData.court)) && (
+                  <MenuItem value={formData.court}>{formData.court}</MenuItem>
+                )}
               </TextField>
             </Grid>
 

@@ -16,6 +16,7 @@ import {
 import { 
   INITIAL_SETTINGS, 
   STANDARD_LEGAL_CATEGORIES,
+  STANDARD_COURT_FORUMS,
   OFFLINE_DEMO_CASES,
   OFFLINE_DEMO_USERS,
   PRESET_FAVICONS
@@ -26,6 +27,7 @@ const STORAGE_KEYS = {
   EXPENSES: "oj_store_expenses",
   ADVANCES: "oj_store_advances",
   CATEGORIES: "oj_store_categories",
+  FORUMS: "oj_store_forums",
   SETTINGS: "oj_store_settings",
   USERS: "oj_store_users",
 };
@@ -489,6 +491,67 @@ export const deleteCategory = async (id) => {
   const filtered = localCategories.filter(c => c.id !== id);
   setLocal(STORAGE_KEYS.CATEGORIES, filtered);
   return true;
+};
+
+// ==================== FORUMS & COURTS ====================
+export const getForums = async () => {
+  if (isFirebaseConfigured() && db) {
+    try {
+      const q = query(collection(db, "forums"));
+      const snapshot = await getDocs(q);
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (list.length > 0) return list;
+    } catch (e) {
+      console.warn("Remote getForums failed:", e);
+    }
+  }
+  return getLocal(STORAGE_KEYS.FORUMS, STANDARD_COURT_FORUMS);
+};
+
+export const addForum = async (forumData) => {
+  const newForum = {
+    ...forumData,
+    id: forumData.id || `FORUM-${Date.now().toString().slice(-4)}`,
+  };
+
+  if (isFirebaseConfigured() && db) {
+    await setDoc(doc(db, "forums", newForum.id), newForum);
+  }
+
+  const localForums = getLocal(STORAGE_KEYS.FORUMS, STANDARD_COURT_FORUMS);
+  const updated = [...localForums, newForum];
+  setLocal(STORAGE_KEYS.FORUMS, updated);
+  return newForum;
+};
+
+export const updateForum = async (id, updates) => {
+  if (isFirebaseConfigured() && db) {
+    await updateDoc(doc(db, "forums", id), updates);
+  }
+  const localForums = getLocal(STORAGE_KEYS.FORUMS, STANDARD_COURT_FORUMS);
+  const updated = localForums.map(f => f.id === id ? { ...f, ...updates } : f);
+  setLocal(STORAGE_KEYS.FORUMS, updated);
+  return updated.find(f => f.id === id);
+};
+
+export const deleteForum = async (id) => {
+  if (isFirebaseConfigured() && db) {
+    await deleteDoc(doc(db, "forums", id));
+  }
+  const localForums = getLocal(STORAGE_KEYS.FORUMS, STANDARD_COURT_FORUMS);
+  const filtered = localForums.filter(f => f.id !== id);
+  setLocal(STORAGE_KEYS.FORUMS, filtered);
+  return true;
+};
+
+export const seedStandardForums = async () => {
+  for (const f of STANDARD_COURT_FORUMS) {
+    if (isFirebaseConfigured() && db) {
+      await setDoc(doc(db, "forums", f.id), f);
+    }
+  }
+  setLocal(STORAGE_KEYS.FORUMS, STANDARD_COURT_FORUMS);
+  return STANDARD_COURT_FORUMS;
 };
 
 // ==================== USERS & ROLES ====================

@@ -22,30 +22,33 @@ import {
   Tab,
   Divider,
   Alert,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
+  Select,
+  FormControl,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CategoryIcon from "@mui/icons-material/Category";
+import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
-import TuneIcon from "@mui/icons-material/Tune";
 import CloudQueueIcon from "@mui/icons-material/CloudQueue";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import SaveIcon from "@mui/icons-material/Save";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PaletteIcon from "@mui/icons-material/Palette";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CaseDialog from "../components/CaseDialog";
 import CategoryDialog from "../components/CategoryDialog";
+import ForumDialog from "../components/ForumDialog";
 import ExpenseDialog from "../components/ExpenseDialog";
 import RoleBadge from "../components/RoleBadge";
 import { useAuth } from "../context/AuthContext";
@@ -68,36 +71,36 @@ const COLOR_PRESETS = [
   { name: "Slate Steel", hex: "#1e293b" },
 ];
 
-const ACCENT_PRESETS = [
-  { name: "Legal Gold", hex: "#c99738" },
-  { name: "Amber Warmth", hex: "#d97706" },
-  { name: "High Court Cyan", hex: "#0284c7" },
-  { name: "Emerald Green", hex: "#16a34a" },
-  { name: "Imperial Bronze", hex: "#9f7324" },
-];
-
 export default function SoftwareAdminPage() {
-  const { currentUser, resetPassword } = useAuth();
+  const { currentUser, resetPassword, updateLocalRole } = useAuth();
   const {
     cases,
     categories,
+    forums,
     users,
     expenses,
     settings,
     saveSettings,
     deleteCase,
     deleteCategory,
+    deleteForum,
+    seedStandardForums,
     deleteExpense,
     updateUserRole,
     seedStandardCategories,
     showNotification,
   } = useApp();
 
+  // Active Tab Index
+  // 0: Cases | 1: Courts/Forums | 2: Categories | 3: Firm Details | 4: Branding/Favicon | 5: Staff Permissions | 6: Firebase | 7: Master Vouchers
   const [activeTab, setActiveTab] = useState(0);
 
   // Modals
   const [openCaseModal, setOpenCaseModal] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
+
+  const [openForumModal, setOpenForumModal] = useState(false);
+  const [selectedForum, setSelectedForum] = useState(null);
 
   const [openCategoryModal, setOpenCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -105,8 +108,8 @@ export default function SoftwareAdminPage() {
   const [openExpenseModal, setOpenExpenseModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
 
-  // Comprehensive Settings State Form (Firm Details, Layout, Favicon, Header)
-  const [settingsForm, setSettingsForm] = useState({
+  // Firm Details Form State
+  const [firmForm, setFirmForm] = useState({
     firmName: settings.firmName || "OJ Legal Advocates & Solicitors",
     tagline: settings.tagline || "",
     registrationNo: settings.registrationNo || "",
@@ -116,6 +119,15 @@ export default function SoftwareAdminPage() {
     altPhone: settings.altPhone || "",
     websiteUrl: settings.websiteUrl || "",
     currencySymbol: settings.currencySymbol || "₹",
+    reportHeader: settings.reportHeader || "",
+    reportDisclaimer: settings.reportDisclaimer || "",
+    signaturePreparedBy: settings.signaturePreparedBy || "Prepared by Staff Associate",
+    signatureVerifiedBy: settings.signatureVerifiedBy || "Verified by Accounts Admin (Boss)",
+    signatureApprovedBy: settings.signatureApprovedBy || "Approved by Managing Partner",
+  });
+
+  // Branding & UI Form State
+  const [brandForm, setBrandForm] = useState({
     navbarTitle: settings.navbarTitle || settings.firmName || "OJ Legal Advocates",
     headerBgColor: settings.headerBgColor || "#0f2942",
     headerTextColor: settings.headerTextColor || "#ffffff",
@@ -124,18 +136,38 @@ export default function SoftwareAdminPage() {
     customLogoUrl: settings.customLogoUrl || "",
     faviconType: settings.faviconType || "scales",
     customFaviconUrl: settings.customFaviconUrl || "",
-    reportHeader: settings.reportHeader || "",
-    reportDisclaimer: settings.reportDisclaimer || "",
-    signaturePreparedBy: settings.signaturePreparedBy || "Prepared by Staff Associate",
-    signatureVerifiedBy: settings.signatureVerifiedBy || "Verified by Accounts Admin (Boss)",
-    signatureApprovedBy: settings.signatureApprovedBy || "Approved by Managing Partner",
   });
 
   useEffect(() => {
     if (settings && Object.keys(settings).length > 0) {
-      setSettingsForm(prev => ({
+      setFirmForm((prev) => ({
         ...prev,
-        ...settings,
+        firmName: settings.firmName || prev.firmName,
+        tagline: settings.tagline || prev.tagline,
+        registrationNo: settings.registrationNo || prev.registrationNo,
+        firmAddress: settings.firmAddress || prev.firmAddress,
+        contactEmail: settings.contactEmail || prev.contactEmail,
+        contactPhone: settings.contactPhone || prev.contactPhone,
+        altPhone: settings.altPhone || prev.altPhone,
+        websiteUrl: settings.websiteUrl || prev.websiteUrl,
+        currencySymbol: settings.currencySymbol || prev.currencySymbol,
+        reportHeader: settings.reportHeader || prev.reportHeader,
+        reportDisclaimer: settings.reportDisclaimer || prev.reportDisclaimer,
+        signaturePreparedBy: settings.signaturePreparedBy || prev.signaturePreparedBy,
+        signatureVerifiedBy: settings.signatureVerifiedBy || prev.signatureVerifiedBy,
+        signatureApprovedBy: settings.signatureApprovedBy || prev.signatureApprovedBy,
+      }));
+
+      setBrandForm((prev) => ({
+        ...prev,
+        navbarTitle: settings.navbarTitle || prev.navbarTitle,
+        headerBgColor: settings.headerBgColor || prev.headerBgColor,
+        headerTextColor: settings.headerTextColor || prev.headerTextColor,
+        headerAccentColor: settings.headerAccentColor || prev.headerAccentColor,
+        navbarIconType: settings.navbarIconType || prev.navbarIconType,
+        customLogoUrl: settings.customLogoUrl || prev.customLogoUrl,
+        faviconType: settings.faviconType || prev.faviconType,
+        customFaviconUrl: settings.customFaviconUrl || prev.customFaviconUrl,
       }));
     }
   }, [settings]);
@@ -157,14 +189,41 @@ export default function SoftwareAdminPage() {
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState(null);
 
-  // Role Edit Dialog
-  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState(null);
-  const [selectedNewRole, setSelectedNewRole] = useState("staff");
-
-  const handleSaveFirmSettings = async (e) => {
+  // Save Handlers
+  const handleSaveFirmDetails = async (e) => {
     e.preventDefault();
-    await saveSettings(settingsForm);
+    await saveSettings(firmForm);
+    showNotification("Law firm official details updated successfully!", "success");
+  };
+
+  const handleSaveBranding = async (e) => {
+    e.preventDefault();
+    await saveSettings(brandForm);
+    showNotification("Branding, UI & Favicon settings saved successfully!", "success");
+  };
+
+  // 1-Click Role Change Handler (NO PASSWORDS REQUIRED)
+  const handleDirectRoleChange = async (uid, newRole, memberName) => {
+    try {
+      await updateUserRole(uid, newRole);
+      if (currentUser?.uid === uid) {
+        updateLocalRole(newRole);
+      }
+      showNotification(`Role successfully changed to "${newRole.toUpperCase()}" for ${memberName || "user"}.`, "success");
+    } catch (err) {
+      showNotification(`Failed to change role: ${err.message}`, "error");
+    }
+  };
+
+  const handleResetUserPassword = async (email) => {
+    if (window.confirm(`Send official password reset link to ${email}?`)) {
+      const res = await resetPassword(email);
+      if (res.success) {
+        showNotification(res.message, "success");
+      } else {
+        showNotification("Failed to send reset link: " + res.error, "error");
+      }
+    }
   };
 
   const handleTestFirebase = async () => {
@@ -191,72 +250,192 @@ export default function SoftwareAdminPage() {
     }
   };
 
-  const handleResetUserPassword = async (email) => {
-    if (window.confirm(`Send official password reset link to ${email}?`)) {
-      const res = await resetPassword(email);
-      if (res.success) {
-        showNotification(res.message, "success");
-      } else {
-        showNotification("Failed to send reset link: " + res.error, "error");
-      }
-    }
-  };
-
-  const handleOpenRoleModal = (u) => {
-    setUserToEdit(u);
-    setSelectedNewRole(u.role);
-    setRoleDialogOpen(true);
-  };
-
-  const handleSaveRole = async () => {
-    if (userToEdit) {
-      await updateUserRole(userToEdit.uid, selectedNewRole);
-      setRoleDialogOpen(false);
-    }
-  };
-
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: "auto" }}>
-      {/* Page Title */}
-      <Box sx={{ mb: 4 }}>
+      {/* Top Page Header */}
+      <Box sx={{ mb: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Typography variant="h4" fontWeight={800} color="text.primary">
-            Software Admin & Master Control
-          </Typography>
-          <Chip label="MASTER ACCESS" size="small" sx={{ backgroundColor: "#7c3aed", color: "#fff", fontWeight: 800 }} />
+          <Box
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: 2.5,
+              backgroundColor: "#0f2942",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
+            }}
+          >
+            <AdminPanelSettingsIcon sx={{ fontSize: 26 }} />
+          </Box>
+          <Box>
+            <Typography variant="h4" fontWeight={800} color="#0f172a">
+              Software Admin Master Console
+            </Typography>
+            <Typography variant="body2" color="#334155" fontWeight={500}>
+              Comprehensive administration: manage courts, firm details, categories, case registry, and 1-click user permissions.
+            </Typography>
+          </Box>
         </Box>
-        <Typography variant="body2" color="text.secondary">
-          Configure cases, categories, user roles, firm layout, favicon, header styling, PDF reports, and Google Firestore.
-        </Typography>
       </Box>
 
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+      {/* High-Contrast Navigation Tabs */}
+      <Paper
+        elevation={0}
+        sx={{
+          mb: 3.5,
+          border: "1px solid #cbd5e1",
+          borderRadius: 3,
+          backgroundColor: "#f8fafc",
+          p: 0.8,
+        }}
+      >
         <Tabs
           value={activeTab}
           onChange={(e, val) => setActiveTab(val)}
           variant="scrollable"
           scrollButtons="auto"
+          sx={{
+            "& .MuiTabs-indicator": {
+              display: "none",
+            },
+          }}
         >
-          <Tab icon={<FolderSpecialIcon />} iconPosition="start" label={`Case Registry (${cases.length})`} sx={{ fontWeight: 700 }} />
-          <Tab icon={<CategoryIcon />} iconPosition="start" label={`Expense Categories (${categories.length})`} sx={{ fontWeight: 700 }} />
-          <Tab icon={<PaletteIcon />} iconPosition="start" label="Branding, UI & Header" sx={{ fontWeight: 700 }} />
-          <Tab icon={<PeopleIcon />} iconPosition="start" label={`Staff & Permissions (${users.length})`} sx={{ fontWeight: 700 }} />
-          <Tab icon={<CloudQueueIcon />} iconPosition="start" label="Firebase & Firestore" sx={{ fontWeight: 700 }} />
-          <Tab icon={<ReceiptLongIcon />} iconPosition="start" label="Master Voucher Editor" sx={{ fontWeight: 700 }} />
+          <Tab
+            icon={<FolderSpecialIcon />}
+            iconPosition="start"
+            label={`Cases (${cases.length})`}
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 0 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 0 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<AccountBalanceIcon />}
+            iconPosition="start"
+            label={`Courts / Forums (${forums.length})`}
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 1 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 1 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<CategoryIcon />}
+            iconPosition="start"
+            label={`Categories (${categories.length})`}
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 2 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 2 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<BusinessIcon />}
+            iconPosition="start"
+            label="Firm Details"
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 3 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 3 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<PaletteIcon />}
+            iconPosition="start"
+            label="Branding & Favicon"
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 4 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 4 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<PeopleIcon />}
+            iconPosition="start"
+            label={`Staff & Access (${users.length})`}
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 5 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 5 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<CloudQueueIcon />}
+            iconPosition="start"
+            label="Firebase Connection"
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 6 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 6 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<ReceiptLongIcon />}
+            iconPosition="start"
+            label="Master Vouchers"
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 7 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 7 ? "#0f2942" : "transparent",
+            }}
+          />
         </Tabs>
-      </Box>
+      </Paper>
 
       {/* ==================== TAB 0: CASES ==================== */}
       {activeTab === 0 && (
-        <Card>
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
           <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
                 Approved Case Registry
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Staff can only select active cases registered here. Deactivating a case stops new expense submissions for it.
+              <Typography variant="body2" color="#334155">
+                Staff associates can only record expenses against pre-approved cases registered here.
               </Typography>
             </Box>
             <Button
@@ -266,7 +445,7 @@ export default function SoftwareAdminPage() {
                 setSelectedCase(null);
                 setOpenCaseModal(true);
               }}
-              sx={{ fontWeight: 700 }}
+              sx={{ fontWeight: 800, px: 2.5, backgroundColor: "#0f2942" }}
             >
               Register New Case
             </Button>
@@ -290,8 +469,8 @@ export default function SoftwareAdminPage() {
                 {cases.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No cases registered in Firestore yet. Click <strong>Register New Case</strong> to add your first law firm matter.
+                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                        No cases registered in Firestore. Click "Register New Case" to register your first legal matter.
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -299,66 +478,64 @@ export default function SoftwareAdminPage() {
                   cases.map((c) => (
                     <TableRow key={c.id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700} color="primary.main">
+                        <Typography variant="body2" fontWeight={800} color="#0f172a">
                           {c.caseNumber}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          ID: {c.id}
-                        </Typography>
                       </TableCell>
-
-                      <TableCell sx={{ maxWidth: 260 }}>
-                        <Typography variant="body2" fontWeight={600}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={700} color="#0f172a">
                           {c.title}
                         </Typography>
                       </TableCell>
-
                       <TableCell>
-                        <Typography variant="body2">{c.court}</Typography>
+                        <Typography variant="body2" color="#334155">{c.court}</Typography>
                       </TableCell>
-
                       <TableCell>
-                        <Typography variant="body2">{c.clientName || "N/A"}</Typography>
+                        <Typography variant="body2" color="#334155">{c.clientName || "—"}</Typography>
                       </TableCell>
-
                       <TableCell>
-                        <Typography variant="body2">{c.leadAttorney || "Unassigned"}</Typography>
+                        <Typography variant="body2" color="#334155">{c.leadAttorney || "—"}</Typography>
                       </TableCell>
-
                       <TableCell align="center">
                         <Chip
-                          label={c.status.toUpperCase()}
+                          label={c.status === "active" ? "ACTIVE" : "CLOSED"}
                           size="small"
-                          color={c.status === "active" ? "success" : "default"}
-                          sx={{ fontSize: "0.68rem", fontWeight: 700 }}
+                          sx={{
+                            fontWeight: 800,
+                            fontSize: "0.7rem",
+                            backgroundColor: c.status === "active" ? "#dcfce7" : "#f1f5f9",
+                            color: c.status === "active" ? "#15803d" : "#64748b",
+                            border: `1px solid ${c.status === "active" ? "#86efac" : "#cbd5e1"}`,
+                          }}
                         />
                       </TableCell>
-
                       <TableCell align="right">
-                        <Tooltip title="Edit case details">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedCase(c);
-                              setOpenCaseModal(true);
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete case">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={async () => {
-                              if (window.confirm(`Delete case ${c.caseNumber} - ${c.title}?`)) {
-                                await deleteCase(c.id);
-                              }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => {
+                            setSelectedCase(c);
+                            setOpenCaseModal(true);
+                          }}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                          onClick={async () => {
+                            if (window.confirm(`Delete case ${c.caseNumber} (${c.title})?`)) {
+                              await deleteCase(c.id);
+                            }
+                          }}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Delete
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -369,30 +546,151 @@ export default function SoftwareAdminPage() {
         </Card>
       )}
 
-      {/* ==================== TAB 1: CATEGORIES ==================== */}
+      {/* ==================== TAB 1: COURTS & FORUMS ==================== */}
       {activeTab === 1 && (
-        <Card>
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
           <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>
-                Expense Categories & Audit Classifications
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
+                Courts, Tribunals & Judicial Forums
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Categories tagged 'Legal' or 'Technical' are separated in financial audits.
+              <Typography variant="body2" color="#334155">
+                Courts defined here appear dynamically in the Case Registry dropdown across the system.
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", gap: 1.5 }}>
-              {categories.length === 0 && (
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  startIcon={<AutoAwesomeIcon />}
-                  onClick={seedStandardCategories}
-                  sx={{ fontWeight: 700 }}
-                >
-                  Seed Standard Legal Categories
-                </Button>
-              )}
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={seedStandardForums}
+                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324" }}
+              >
+                Seed Standard Legal Courts
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setSelectedForum(null);
+                  setOpenForumModal(true);
+                }}
+                sx={{ fontWeight: 800, backgroundColor: "#0f2942" }}
+              >
+                Add Court / Forum
+              </Button>
+            </Box>
+          </Box>
+          <Divider />
+
+          <TableContainer component={Paper} elevation={0}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Court / Forum Name</TableCell>
+                  <TableCell>Location / City</TableCell>
+                  <TableCell>Jurisdiction Category</TableCell>
+                  <TableCell>Code / Abbr</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {forums.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                        No courts or tribunals configured yet. Click <strong>Seed Standard Legal Courts</strong> to load the Supreme Court, High Courts, and NCLT, or click <strong>Add Court / Forum</strong>.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  forums.map((f) => (
+                    <TableRow key={f.id || f.name} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={800} color="#0f172a">
+                          {f.name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="#334155">{f.city || "New Delhi"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={f.category || "Court"}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.72rem",
+                            backgroundColor: "#e0f2fe",
+                            color: "#0369a1",
+                            border: "1px solid #bae6fd",
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={700} color="#64748b">
+                          {f.code || f.id || "—"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => {
+                            setSelectedForum(f);
+                            setOpenForumModal(true);
+                          }}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                          onClick={async () => {
+                            if (window.confirm(`Delete forum '${f.name}'?`)) {
+                              await deleteForum(f.id);
+                            }
+                          }}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      )}
+
+      {/* ==================== TAB 2: EXPENSE CATEGORIES ==================== */}
+      {activeTab === 2 && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
+          <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+            <Box>
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
+                Expense Categories & Classification
+              </Typography>
+              <Typography variant="body2" color="#334155">
+                Every category can be edited here. Categories classified as 'Legal' or 'Technical' are separated in Boss audits.
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={seedStandardCategories}
+                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324" }}
+              >
+                Seed Standard Legal Categories
+              </Button>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -400,7 +698,7 @@ export default function SoftwareAdminPage() {
                   setSelectedCategory(null);
                   setOpenCategoryModal(true);
                 }}
-                sx={{ fontWeight: 700 }}
+                sx={{ fontWeight: 800, backgroundColor: "#0f2942" }}
               >
                 Add Category
               </Button>
@@ -413,8 +711,8 @@ export default function SoftwareAdminPage() {
               <TableHead>
                 <TableRow>
                   <TableCell>Category Name</TableCell>
-                  <TableCell>Classification</TableCell>
-                  <TableCell>Description / Guidelines</TableCell>
+                  <TableCell>Audit Classification</TableCell>
+                  <TableCell>Description / Practice Guidelines</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -422,8 +720,8 @@ export default function SoftwareAdminPage() {
                 {categories.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No categories found in Firestore. Click <strong>Seed Standard Legal Categories</strong> to auto-populate standard Court Fees, Counsel Fees, and Forensics categories, or click <strong>Add Category</strong> to define custom ones.
+                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                        No categories found in Firestore. Click <strong>Seed Standard Legal Categories</strong> to auto-populate Court Fees, Counsel Fees, and Forensics, or click <strong>Add Category</strong>.
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -431,59 +729,62 @@ export default function SoftwareAdminPage() {
                   categories.map((cat) => (
                     <TableRow key={cat.id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700}>
+                        <Typography variant="body2" fontWeight={800} color="#0f172a">
                           {cat.name}
                         </Typography>
                       </TableCell>
-
                       <TableCell>
                         <Chip
                           label={cat.type.toUpperCase()}
                           size="small"
                           sx={{
-                            fontWeight: 700,
-                            fontSize: "0.7rem",
+                            fontWeight: 800,
+                            fontSize: "0.72rem",
                             backgroundColor:
-                              cat.type === "legal" ? "#1e40af15" :
-                              cat.type === "technical" ? "#b4530915" : "#47556915",
+                              cat.type === "legal" ? "#dbeafe" :
+                              cat.type === "technical" ? "#fef3c7" : "#f1f5f9",
                             color:
                               cat.type === "legal" ? "#1e40af" :
                               cat.type === "technical" ? "#b45309" : "#475569",
+                            border: `1px solid ${
+                              cat.type === "legal" ? "#93c5fd" :
+                              cat.type === "technical" ? "#fde68a" : "#cbd5e1"
+                            }`,
                           }}
                         />
                       </TableCell>
-
-                      <TableCell sx={{ maxWidth: 400 }}>
-                        <Typography variant="body2" color="text.secondary">
+                      <TableCell sx={{ maxWidth: 450 }}>
+                        <Typography variant="body2" color="#334155">
                           {cat.description || "No specific guidelines provided."}
                         </Typography>
                       </TableCell>
-
                       <TableCell align="right">
-                        <Tooltip title="Edit category">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedCategory(cat);
-                              setOpenCategoryModal(true);
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete category">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={async () => {
-                              if (window.confirm(`Delete category '${cat.name}'?`)) {
-                                await deleteCategory(cat.id);
-                              }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => {
+                            setSelectedCategory(cat);
+                            setOpenCategoryModal(true);
+                          }}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                          onClick={async () => {
+                            if (window.confirm(`Delete category '${cat.name}'?`)) {
+                              await deleteCategory(cat.id);
+                            }
+                          }}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Delete
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -494,369 +795,403 @@ export default function SoftwareAdminPage() {
         </Card>
       )}
 
-      {/* ==================== TAB 2: BRANDING, UI, FAVICON & HEADER ==================== */}
-      {activeTab === 2 && (
-        <Card>
+      {/* ==================== TAB 3: OFFICIAL LAW FIRM DETAILS ==================== */}
+      {activeTab === 3 && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
           <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" fontWeight={800}>
-                Law Firm Details, Header & UI Customizer
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
+                Official Law Firm Identity & Practice Details
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Full control over the website's visual branding, favicon, header color theme, firm metadata, and PDF statements.
+              <Typography variant="body2" color="#334155">
+                These official parameters appear on client disbursement statements, voucher PDFs, certified Excel audits, and system reports.
               </Typography>
             </Box>
 
-            <form onSubmit={handleSaveFirmSettings}>
-              {/* SECTION A: FAVICON CUSTOMIZATION */}
-              <Paper elevation={0} sx={{ p: 2.5, mb: 4, borderRadius: 2.5, border: "1px solid #e2e8f0", backgroundColor: "background.default" }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                  <span>🌐</span> Browser Tab Favicon Settings
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-                  Customize the icon appearing in browser tabs. Updates dynamically in real-time.
-                </Typography>
-
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      label="Select Favicon Style"
-                      value={settingsForm.faviconType}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, faviconType: e.target.value })}
-                    >
-                      <MenuItem value="scales">⚖️ Scales of Justice (Gold Legal Shield)</MenuItem>
-                      <MenuItem value="gavel">🔨 Judicial Gavel (Executive Navy)</MenuItem>
-                      <MenuItem value="pillar">🏛️ Classical Law Pillar (Sky Blue)</MenuItem>
-                      <MenuItem value="shield">🛡️ Protected Shield (Emerald)</MenuItem>
-                      <MenuItem value="custom_url">🔗 Custom Favicon Image URL</MenuItem>
-                    </TextField>
-                  </Grid>
-
-                  {settingsForm.faviconType === "custom_url" && (
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Custom Favicon URL (.png, .svg, or .ico)"
-                        placeholder="https://example.com/favicon.png"
-                        value={settingsForm.customFaviconUrl}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, customFaviconUrl: e.target.value })}
-                      />
-                    </Grid>
-                  )}
-
-                  <Grid item xs={12}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 1 }}>
-                      <Typography variant="caption" fontWeight={600}>
-                        Current Favicon Preview:
-                      </Typography>
-                      <Box
-                        component="img"
-                        src={
-                          settingsForm.faviconType === "custom_url" && settingsForm.customFaviconUrl
-                            ? settingsForm.customFaviconUrl
-                            : PRESET_FAVICONS[settingsForm.faviconType] || PRESET_FAVICONS.scales
-                        }
-                        alt="Favicon preview"
-                        sx={{ width: 24, height: 24, borderRadius: 0.5 }}
-                      />
-                    </Box>
-                  </Grid>
+            <form onSubmit={handleSaveFirmDetails}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Official Law Firm Name"
+                    value={firmForm.firmName}
+                    onChange={(e) => setFirmForm({ ...firmForm, firmName: e.target.value })}
+                    fullWidth
+                    size="small"
+                    required
+                  />
                 </Grid>
-              </Paper>
 
-              {/* SECTION B: HEADER & NAVBAR STYLING */}
-              <Paper elevation={0} sx={{ p: 2.5, mb: 4, borderRadius: 2.5, border: "1px solid #e2e8f0", backgroundColor: "background.default" }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                  <span>🎨</span> Header & Navigation Bar Customization
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-                  Customize the top navbar background color, logo, and brand name.
-                </Typography>
-
-                <Grid container spacing={2.5}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Navbar Brand Title"
-                      value={settingsForm.navbarTitle}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, navbarTitle: e.target.value })}
-                      helperText="Overrides firm name in the top navigation bar"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      label="Navbar Logo Icon"
-                      value={settingsForm.navbarIconType}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, navbarIconType: e.target.value })}
-                    >
-                      <MenuItem value="gavel">🔨 Judicial Gavel</MenuItem>
-                      <MenuItem value="scales">⚖️ Scales of Justice</MenuItem>
-                      <MenuItem value="pillar">🏛️ Classical Law Pillar</MenuItem>
-                      <MenuItem value="shield">🛡️ Advocate Shield</MenuItem>
-                    </TextField>
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Custom Logo Image URL (Optional)"
-                      placeholder="https://ojlegal.com/logo.png"
-                      value={settingsForm.customLogoUrl}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, customLogoUrl: e.target.value })}
-                      helperText="If provided, replaces the icon with your firm's graphic logo"
-                    />
-                  </Grid>
-
-                  {/* Header Background Color Presets */}
-                  <Grid item xs={12}>
-                    <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                      HEADER BACKGROUND THEME PRESETS:
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-                      {COLOR_PRESETS.map((p) => (
-                        <Button
-                          key={p.hex}
-                          size="small"
-                          variant={settingsForm.headerBgColor === p.hex ? "contained" : "outlined"}
-                          onClick={() => setSettingsForm({ ...settingsForm, headerBgColor: p.hex })}
-                          sx={{
-                            backgroundColor: settingsForm.headerBgColor === p.hex ? p.hex : "transparent",
-                            color: settingsForm.headerBgColor === p.hex ? "#fff" : "text.primary",
-                            borderColor: p.hex,
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: p.hex, mr: 1 }} />
-                          {p.name}
-                        </Button>
-                      ))}
-                    </Box>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Custom Header Hex Color"
-                      value={settingsForm.headerBgColor}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, headerBgColor: e.target.value })}
-                      InputProps={{
-                        startAdornment: (
-                          <Box sx={{ width: 16, height: 16, borderRadius: "50%", backgroundColor: settingsForm.headerBgColor, mr: 1 }} />
-                        ),
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Header Accent Color"
-                      value={settingsForm.headerAccentColor}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, headerAccentColor: e.target.value })}
-                      InputProps={{
-                        startAdornment: (
-                          <Box sx={{ width: 16, height: 16, borderRadius: "50%", backgroundColor: settingsForm.headerAccentColor, mr: 1 }} />
-                        ),
-                      }}
-                    />
-                  </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Practice Tagline / Slogan"
+                    value={firmForm.tagline}
+                    onChange={(e) => setFirmForm({ ...firmForm, tagline: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
                 </Grid>
-              </Paper>
 
-              {/* SECTION C: FIRM CONTACT & OFFICIAL DETAILS */}
-              <Paper elevation={0} sx={{ p: 2.5, mb: 4, borderRadius: 2.5, border: "1px solid #e2e8f0", backgroundColor: "background.default" }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                  <span>🏛️</span> Official Law Firm Details
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-                  These details appear on official client invoices, vouchers, and generated PDF/Excel reports.
-                </Typography>
-
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Official Law Firm Name"
-                      value={settingsForm.firmName}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, firmName: e.target.value })}
-                      fullWidth
-                      size="small"
-                      required
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Practice Tagline / Slogan"
-                      value={settingsForm.tagline}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, tagline: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Bar Council / Chamber Registration No"
-                      value={settingsForm.registrationNo}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, registrationNo: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Currency Symbol"
-                      value={settingsForm.currencySymbol}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, currencySymbol: e.target.value })}
-                      fullWidth
-                      size="small"
-                      helperText="e.g. ₹ (INR), $ (USD), £ (GBP), € (EUR), AED"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Chamber Complex Address"
-                      value={settingsForm.firmAddress}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, firmAddress: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      label="Accounts Department Email"
-                      value={settingsForm.contactEmail}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, contactEmail: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      label="Chamber Phone"
-                      value={settingsForm.contactPhone}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, contactPhone: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      label="Alternate Phone / Mobile"
-                      value={settingsForm.altPhone}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, altPhone: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Official Website URL"
-                      value={settingsForm.websiteUrl}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, websiteUrl: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Bar Council / Chamber Registration No"
+                    value={firmForm.registrationNo}
+                    onChange={(e) => setFirmForm({ ...firmForm, registrationNo: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
                 </Grid>
-              </Paper>
 
-              {/* SECTION D: REPORT TEMPLATES & SIGNATURES */}
-              <Paper elevation={0} sx={{ p: 2.5, mb: 4, borderRadius: 2.5, border: "1px solid #e2e8f0", backgroundColor: "background.default" }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                  <span>📑</span> PDF & Excel Report Header & Disclaimers
-                </Typography>
-
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="PDF Report Main Title Header"
-                      value={settingsForm.reportHeader}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, reportHeader: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Official Bar Council Legal Certification & Disclaimer (Appears on PDF footer)"
-                      value={settingsForm.reportDisclaimer}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, reportDisclaimer: e.target.value })}
-                      fullWidth
-                      size="small"
-                      multiline
-                      rows={2}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      label="Sign-off Block 1"
-                      value={settingsForm.signaturePreparedBy}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, signaturePreparedBy: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      label="Sign-off Block 2"
-                      value={settingsForm.signatureVerifiedBy}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, signatureVerifiedBy: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      label="Sign-off Block 3"
-                      value={settingsForm.signatureApprovedBy}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, signatureApprovedBy: e.target.value })}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Primary Currency Symbol"
+                    value={firmForm.currencySymbol}
+                    onChange={(e) => setFirmForm({ ...firmForm, currencySymbol: e.target.value })}
+                    fullWidth
+                    size="small"
+                    helperText="e.g. ₹ (INR), $ (USD), £ (GBP), € (EUR), AED"
+                  />
                 </Grid>
-              </Paper>
 
-              <Button type="submit" variant="contained" size="large" startIcon={<SaveIcon />} sx={{ fontWeight: 700, py: 1.2, px: 4 }}>
-                Save All UI & Branding Settings
-              </Button>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Chamber Complex Address"
+                    value={firmForm.firmAddress}
+                    onChange={(e) => setFirmForm({ ...firmForm, firmAddress: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Accounts Department Email"
+                    value={firmForm.contactEmail}
+                    onChange={(e) => setFirmForm({ ...firmForm, contactEmail: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Chamber Landline Phone"
+                    value={firmForm.contactPhone}
+                    onChange={(e) => setFirmForm({ ...firmForm, contactPhone: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Alternate Mobile / Contact"
+                    value={firmForm.altPhone}
+                    onChange={(e) => setFirmForm({ ...firmForm, altPhone: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    label="Official Website URL"
+                    value={firmForm.websiteUrl}
+                    onChange={(e) => setFirmForm({ ...firmForm, websiteUrl: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                {/* Report Signatures & Disclaimers */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mt: 1, mb: 2 }}>
+                    Official Report Signatures & Audit Footers
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Signature 1: Preparation By"
+                    value={firmForm.signaturePreparedBy}
+                    onChange={(e) => setFirmForm({ ...firmForm, signaturePreparedBy: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Signature 2: Audit & Verification By"
+                    value={firmForm.signatureVerifiedBy}
+                    onChange={(e) => setFirmForm({ ...firmForm, signatureVerifiedBy: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Signature 3: Approval By"
+                    value={firmForm.signatureApprovedBy}
+                    onChange={(e) => setFirmForm({ ...firmForm, signatureApprovedBy: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    label="PDF Report Main Header Title"
+                    value={firmForm.reportHeader}
+                    onChange={(e) => setFirmForm({ ...firmForm, reportHeader: e.target.value })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    label="Official Audit Disclaimer Text"
+                    value={firmForm.reportDisclaimer}
+                    onChange={(e) => setFirmForm({ ...firmForm, reportDisclaimer: e.target.value })}
+                    fullWidth
+                    multiline
+                    rows={2}
+                    size="small"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    startIcon={<SaveIcon />}
+                    sx={{
+                      fontWeight: 800,
+                      py: 1.3,
+                      px: 4,
+                      backgroundColor: "#0f2942",
+                      boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
+                    }}
+                  >
+                    Save All Law Firm Details
+                  </Button>
+                </Grid>
+              </Grid>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* ==================== TAB 3: STAFF & USER PERMISSIONS ==================== */}
-      {activeTab === 3 && (
-        <Card>
+      {/* ==================== TAB 4: BRANDING, HEADER & FAVICON ==================== */}
+      {activeTab === 4 && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
+          <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
+                Branding, Top Header & Favicon Customization
+              </Typography>
+              <Typography variant="body2" color="#334155">
+                Customize website favicon, navigation bar color theme, brand title, and official logo graphics.
+              </Typography>
+            </Box>
+
+            <form onSubmit={handleSaveBranding}>
+              <Grid container spacing={3}>
+                {/* Favicon Settings */}
+                <Grid item xs={12}>
+                  <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #cbd5e1", borderRadius: 2, backgroundColor: "#f8fafc" }}>
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mb: 1.5 }}>
+                      Website Favicon (Browser Tab Icon)
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          label="Preset Legal Favicons"
+                          value={brandForm.faviconType}
+                          onChange={(e) => setBrandForm({ ...brandForm, faviconType: e.target.value })}
+                        >
+                          <MenuItem value="scales">⚖️ Scales of Justice (Gold on Navy)</MenuItem>
+                          <MenuItem value="gavel">🔨 Judicial Gavel (Dark Gold)</MenuItem>
+                          <MenuItem value="pillar">🏛️ Supreme Court Pillar (Royal Blue)</MenuItem>
+                          <MenuItem value="shield">🛡️ Advocate Shield (Gold on Crimson)</MenuItem>
+                          <MenuItem value="emerald">🟢 Emerald Justice (Corporate Law)</MenuItem>
+                          <MenuItem value="navy">🔵 Prestigious Navy Monogram</MenuItem>
+                          <MenuItem value="royal">🟣 Imperial Silk Purple</MenuItem>
+                          <MenuItem value="custom_url">🔗 Custom Image URL</MenuItem>
+                        </TextField>
+                      </Grid>
+
+                      {brandForm.faviconType === "custom_url" && (
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Custom Favicon Image URL (.png / .ico / .svg)"
+                            placeholder="https://example.com/favicon.png"
+                            value={brandForm.customFaviconUrl}
+                            onChange={(e) => setBrandForm({ ...brandForm, customFaviconUrl: e.target.value })}
+                          />
+                        </Grid>
+                      )}
+
+                      <Grid item xs={12}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 0.5 }}>
+                          <Typography variant="caption" fontWeight={700} color="#334155">
+                            Active Favicon Preview:
+                          </Typography>
+                          <Box
+                            component="img"
+                            src={
+                              brandForm.faviconType === "custom_url" && brandForm.customFaviconUrl
+                                ? brandForm.customFaviconUrl
+                                : PRESET_FAVICONS[brandForm.faviconType] || PRESET_FAVICONS.scales
+                            }
+                            alt="Favicon preview"
+                            sx={{ width: 28, height: 28, borderRadius: 1, border: "1px solid #cbd5e1" }}
+                          />
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+
+                {/* Header Navbar Theme */}
+                <Grid item xs={12}>
+                  <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #cbd5e1", borderRadius: 2, backgroundColor: "#f8fafc" }}>
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mb: 1.5 }}>
+                      Header Background & Logo Customization
+                    </Typography>
+
+                    <Grid container spacing={2.5}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Navbar Brand Title"
+                          value={brandForm.navbarTitle}
+                          onChange={(e) => setBrandForm({ ...brandForm, navbarTitle: e.target.value })}
+                          helperText="Overrides firm title in the top navigation bar"
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          label="Navbar Logo Icon"
+                          value={brandForm.navbarIconType}
+                          onChange={(e) => setBrandForm({ ...brandForm, navbarIconType: e.target.value })}
+                        >
+                          <MenuItem value="gavel">🔨 Judicial Gavel</MenuItem>
+                          <MenuItem value="scales">⚖️ Scales of Justice</MenuItem>
+                          <MenuItem value="pillar">🏛️ Classical Law Pillar</MenuItem>
+                          <MenuItem value="shield">🛡️ Advocate Shield</MenuItem>
+                        </TextField>
+                      </Grid>
+
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Custom Logo Image URL (Optional)"
+                          placeholder="https://example.com/logo.png"
+                          value={brandForm.customLogoUrl}
+                          onChange={(e) => setBrandForm({ ...brandForm, customLogoUrl: e.target.value })}
+                          helperText="Replaces the icon with your graphic logo if provided"
+                        />
+                      </Grid>
+
+                      {/* Header Color Presets */}
+                      <Grid item xs={12}>
+                        <Typography variant="caption" fontWeight={800} color="#334155" sx={{ display: "block", mb: 1 }}>
+                          HEADER BACKGROUND PRESETS:
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+                          {COLOR_PRESETS.map((p) => (
+                            <Button
+                              key={p.hex}
+                              size="small"
+                              variant={brandForm.headerBgColor === p.hex ? "contained" : "outlined"}
+                              onClick={() => setBrandForm({ ...brandForm, headerBgColor: p.hex })}
+                              sx={{
+                                backgroundColor: brandForm.headerBgColor === p.hex ? p.hex : "transparent",
+                                color: brandForm.headerBgColor === p.hex ? "#fff" : "#0f172a",
+                                borderColor: p.hex,
+                                fontWeight: 700,
+                                fontSize: "0.78rem",
+                              }}
+                            >
+                              <Box sx={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: p.hex, mr: 1 }} />
+                              {p.name}
+                            </Button>
+                          ))}
+                        </Box>
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Custom Header Hex Color"
+                          value={brandForm.headerBgColor}
+                          onChange={(e) => setBrandForm({ ...brandForm, headerBgColor: e.target.value })}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Header Accent Color"
+                          value={brandForm.headerAccentColor}
+                          onChange={(e) => setBrandForm({ ...brandForm, headerAccentColor: e.target.value })}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    startIcon={<SaveIcon />}
+                    sx={{
+                      fontWeight: 800,
+                      py: 1.3,
+                      px: 4,
+                      backgroundColor: "#0f2942",
+                    }}
+                  >
+                    Save All Branding & Favicon Settings
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ==================== TAB 5: STAFF DIRECTORY & 1-CLICK ACCESS CONTROL ==================== */}
+      {activeTab === 5 && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
           <Box sx={{ p: 2.5 }}>
-            <Typography variant="subtitle1" fontWeight={700}>
-              Staff Directory, Roles & Password Administration
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Assign roles (`staff`, `accounts_admin`, `software_admin`) and dispatch secure Firebase password resets.
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
+                Staff Directory & 1-Click Role Access Control
+              </Typography>
+              <Chip label="NO PASSWORDS REQUIRED" size="small" color="success" sx={{ fontWeight: 800, fontSize: "0.68rem" }} />
+            </Box>
+            <Typography variant="body2" color="#334155" sx={{ mt: 0.5 }}>
+              As the Software Admin, you possess full sovereignty to assign staff access, Accounts Admin (Boss) access, or Software Admin access directly from the dropdown or quick action buttons below.
             </Typography>
           </Box>
           <Divider />
@@ -867,17 +1202,17 @@ export default function SoftwareAdminPage() {
                 <TableRow>
                   <TableCell>Member Name</TableCell>
                   <TableCell>Official Email</TableCell>
-                  <TableCell>Designation</TableCell>
-                  <TableCell align="center">System Role</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell align="center">Current Role</TableCell>
+                  <TableCell align="center" sx={{ minWidth: 260 }}>1-Click Role Assignment</TableCell>
+                  <TableCell align="right">Firebase Reset</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No registered users yet. Staff accounts will appear here automatically when they log in with Google or create an account.
+                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                        No registered users yet. Staff accounts appear here automatically upon Google or Email login.
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -885,40 +1220,92 @@ export default function SoftwareAdminPage() {
                   users.map((u) => (
                     <TableRow key={u.uid} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700}>
+                        <Typography variant="body2" fontWeight={800} color="#0f172a">
                           {u.displayName}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="#64748b" sx={{ fontSize: "0.7rem" }}>
                           UID: {u.uid}
                         </Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2">{u.email}</Typography>
-                      </TableCell>
-
-                      <TableCell>
-                        <Typography variant="body2">{u.designation || "Staff Member"}</Typography>
+                        <Typography variant="body2" fontWeight={600} color="#0f172a">
+                          {u.email}
+                        </Typography>
                       </TableCell>
 
                       <TableCell align="center">
                         <RoleBadge role={u.role} />
                       </TableCell>
 
+                      {/* 1-CLICK INSTANT ROLE SELECTOR & ACTION BUTTONS */}
+                      <TableCell align="center">
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                          <FormControl size="small" sx={{ minWidth: 170 }}>
+                            <Select
+                              value={u.role || "staff"}
+                              onChange={(e) => handleDirectRoleChange(u.uid, e.target.value, u.displayName)}
+                              sx={{
+                                fontWeight: 800,
+                                fontSize: "0.8rem",
+                                borderRadius: 1.5,
+                                backgroundColor:
+                                  u.role === "software_admin" ? "#f3e8ff" :
+                                  u.role === "accounts_admin" ? "#e0f2fe" : "#f1f5f9",
+                                color:
+                                  u.role === "software_admin" ? "#7e22ce" :
+                                  u.role === "accounts_admin" ? "#0369a1" : "#334155",
+                              }}
+                            >
+                              <MenuItem value="staff" sx={{ fontWeight: 700 }}>
+                                🟢 Staff Member
+                              </MenuItem>
+                              <MenuItem value="accounts_admin" sx={{ fontWeight: 700 }}>
+                                🔵 Accounts Admin (Boss)
+                              </MenuItem>
+                              <MenuItem value="software_admin" sx={{ fontWeight: 700 }}>
+                                🟣 Software Admin
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+
+                          {/* Quick Set Buttons */}
+                          {u.role !== "accounts_admin" && (
+                            <Tooltip title="Promote to Boss / Accounts Admin">
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="info"
+                                onClick={() => handleDirectRoleChange(u.uid, "accounts_admin", u.displayName)}
+                                sx={{ py: 0.3, px: 1, fontSize: "0.7rem", fontWeight: 800 }}
+                              >
+                                + Boss
+                              </Button>
+                            </Tooltip>
+                          )}
+                          {u.role !== "software_admin" && (
+                            <Tooltip title="Grant Master Software Admin Privileges">
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="secondary"
+                                onClick={() => handleDirectRoleChange(u.uid, "software_admin", u.displayName)}
+                                sx={{ py: 0.3, px: 1, fontSize: "0.7rem", fontWeight: 800 }}
+                              >
+                                + Admin
+                              </Button>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      </TableCell>
+
                       <TableCell align="right">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => handleOpenRoleModal(u)}
-                          sx={{ mr: 1, fontSize: "0.75rem" }}
-                        >
-                          Change Role
-                        </Button>
-                        <Tooltip title="Send password reset link via Firebase">
+                        <Tooltip title="Send password reset link via Firebase Auth">
                           <IconButton
                             size="small"
                             color="primary"
                             onClick={() => handleResetUserPassword(u.email)}
+                            sx={{ border: "1px solid #cbd5e1", borderRadius: 1.5 }}
                           >
                             <LockResetIcon fontSize="small" />
                           </IconButton>
@@ -933,121 +1320,110 @@ export default function SoftwareAdminPage() {
         </Card>
       )}
 
-      {/* ==================== TAB 4: FIREBASE CONFIGURATION ==================== */}
-      {activeTab === 4 && (
-        <Card>
-          <CardContent sx={{ p: 3 }}>
+      {/* ==================== TAB 6: FIREBASE CONFIGURATION ==================== */}
+      {activeTab === 6 && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
+          <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" fontWeight={700}>
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
                 Google Cloud Firestore & Firebase Auth Settings
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Connect your website directly to your Google Cloud Firestore project.
+              <Typography variant="body2" color="#334155">
+                Target Project: <strong>ojlegal-test</strong>. Connects live data across all users and devices.
               </Typography>
             </Box>
 
             <Alert
               severity={isFirebaseConfigured() ? "success" : "info"}
-              sx={{ mb: 3 }}
+              sx={{ mb: 3, borderRadius: 2 }}
             >
               {isFirebaseConfigured()
-                ? `Connected to Google Firebase Project: ${firebaseForm.projectId}. All data is secured in Google Cloud.`
-                : "The application is currently running in Local Offline Mode. Enter your Firebase project credentials below to connect live."}
+                ? "Active: Connected directly to Google Cloud Firestore project 'ojlegal-test'."
+                : "Notice: Currently running in local storage preview mode."}
             </Alert>
 
-            <Grid container spacing={2}>
+            <Grid container spacing={2.5}>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Firebase API Key"
+                  fullWidth
+                  size="small"
+                  label="API Key (apiKey)"
                   value={firebaseForm.apiKey}
-                  onChange={(e) => setFirebaseForm({ ...firebaseForm, apiKey: e.target.value.trim() })}
-                  fullWidth
-                  size="small"
-                  placeholder="AIzaSy..."
+                  onChange={(e) => setFirebaseForm({ ...firebaseForm, apiKey: e.target.value })}
                 />
               </Grid>
-
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Project ID"
-                  value={firebaseForm.projectId}
-                  onChange={(e) => setFirebaseForm({ ...firebaseForm, projectId: e.target.value.trim() })}
                   fullWidth
                   size="small"
-                  placeholder="ojlegal-test"
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Auth Domain"
+                  label="Auth Domain (authDomain)"
                   value={firebaseForm.authDomain}
-                  onChange={(e) => setFirebaseForm({ ...firebaseForm, authDomain: e.target.value.trim() })}
-                  fullWidth
-                  size="small"
-                  placeholder="ojlegal-test.firebaseapp.com"
+                  onChange={(e) => setFirebaseForm({ ...firebaseForm, authDomain: e.target.value })}
                 />
               </Grid>
-
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Storage Bucket"
+                  fullWidth
+                  size="small"
+                  label="Project ID (projectId)"
+                  value={firebaseForm.projectId}
+                  onChange={(e) => setFirebaseForm({ ...firebaseForm, projectId: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Storage Bucket (storageBucket)"
                   value={firebaseForm.storageBucket}
-                  onChange={(e) => setFirebaseForm({ ...firebaseForm, storageBucket: e.target.value.trim() })}
-                  fullWidth
-                  size="small"
-                  placeholder="ojlegal-test.firebasestorage.app"
+                  onChange={(e) => setFirebaseForm({ ...firebaseForm, storageBucket: e.target.value })}
                 />
               </Grid>
-
               <Grid item xs={12} sm={6}>
                 <TextField
+                  fullWidth
+                  size="small"
                   label="Messaging Sender ID"
                   value={firebaseForm.messagingSenderId}
-                  onChange={(e) => setFirebaseForm({ ...firebaseForm, messagingSenderId: e.target.value.trim() })}
-                  fullWidth
-                  size="small"
+                  onChange={(e) => setFirebaseForm({ ...firebaseForm, messagingSenderId: e.target.value })}
                 />
               </Grid>
-
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="App ID"
-                  value={firebaseForm.appId}
-                  onChange={(e) => setFirebaseForm({ ...firebaseForm, appId: e.target.value.trim() })}
                   fullWidth
                   size="small"
+                  label="App ID (appId)"
+                  value={firebaseForm.appId}
+                  onChange={(e) => setFirebaseForm({ ...firebaseForm, appId: e.target.value })}
                 />
               </Grid>
 
               {connectionMessage && (
                 <Grid item xs={12}>
-                  <Alert severity={connectionMessage.success ? "success" : "error"}>
+                  <Alert severity={connectionMessage.success ? "success" : "error"} sx={{ borderRadius: 2 }}>
                     {connectionMessage.message}
                   </Alert>
                 </Grid>
               )}
 
-              <Grid item xs={12} sx={{ display: "flex", gap: 2, mt: 1 }}>
-                <Button
-                  variant="outlined"
-                  onClick={handleTestFirebase}
-                  disabled={testingConnection || !firebaseForm.apiKey || !firebaseForm.projectId}
-                >
-                  {testingConnection ? "Verifying..." : "Test Connection"}
-                </Button>
-
+              <Grid item xs={12} sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mt: 1 }}>
                 <Button
                   variant="contained"
                   onClick={handleSaveFirebase}
-                  disabled={!firebaseForm.apiKey || !firebaseForm.projectId}
-                  sx={{ fontWeight: 700 }}
+                  sx={{ fontWeight: 800, backgroundColor: "#0f2942" }}
                 >
-                  Save & Connect Firebase
+                  Save Firebase Credentials
                 </Button>
-
+                <Button
+                  variant="outlined"
+                  onClick={handleTestFirebase}
+                  disabled={testingConnection}
+                  sx={{ fontWeight: 800 }}
+                >
+                  {testingConnection ? <CircularProgress size={20} /> : "Test Live Connection"}
+                </Button>
                 {isFirebaseConfigured() && (
-                  <Button color="error" onClick={handleDisconnectFirebase}>
+                  <Button color="error" onClick={handleDisconnectFirebase} sx={{ fontWeight: 700 }}>
                     Disconnect
                   </Button>
                 )}
@@ -1057,15 +1433,15 @@ export default function SoftwareAdminPage() {
         </Card>
       )}
 
-      {/* ==================== TAB 5: MASTER VOUCHER EDITOR ==================== */}
-      {activeTab === 5 && (
-        <Card>
+      {/* ==================== TAB 7: MASTER VOUCHER EDITOR ==================== */}
+      {activeTab === 7 && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
           <Box sx={{ p: 2.5 }}>
-            <Typography variant="subtitle1" fontWeight={700}>
+            <Typography variant="h6" fontWeight={800} color="#0f172a">
               Master Expense & Voucher Oversight
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              As Software Admin, you possess master override access to edit or delete any voucher across all staff and cases.
+            <Typography variant="body2" color="#334155">
+              As Software Admin, you possess master override authority to modify or delete any expense entry across all staff and cases.
             </Typography>
           </Box>
           <Divider />
@@ -1086,7 +1462,7 @@ export default function SoftwareAdminPage() {
                 {expenses.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="#64748b" fontWeight={600}>
                         No expense vouchers recorded in Firestore yet.
                       </Typography>
                     </TableCell>
@@ -1095,49 +1471,55 @@ export default function SoftwareAdminPage() {
                   expenses.map((exp) => (
                     <TableRow key={exp.id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700}>{exp.id}</Typography>
-                        <Typography variant="caption" color="text.secondary">{exp.date}</Typography>
+                        <Typography variant="body2" fontWeight={800} color="#0f172a">{exp.id}</Typography>
+                        <Typography variant="caption" color="#64748b">{exp.date}</Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2" fontWeight={600}>{exp.caseTitle}</Typography>
+                        <Typography variant="body2" fontWeight={700} color="#0f172a">{exp.caseTitle}</Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2">{exp.name}</Typography>
+                        <Typography variant="body2" color="#334155">{exp.name}</Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2">{exp.staffName}</Typography>
+                        <Typography variant="body2" color="#334155">{exp.staffName}</Typography>
                       </TableCell>
 
                       <TableCell align="right">
-                        <Typography variant="body2" fontWeight={700}>
+                        <Typography variant="body2" fontWeight={800} color="#0f172a">
                           {settings.currencySymbol || "₹"} {Number(exp.amount).toLocaleString()}
                         </Typography>
                       </TableCell>
 
                       <TableCell align="right">
-                        <IconButton
+                        <Button
                           size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
                           onClick={() => {
                             setSelectedExpense(exp);
                             setOpenExpenseModal(true);
                           }}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
                         >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
+                          Edit
+                        </Button>
+                        <Button
                           size="small"
+                          variant="outlined"
                           color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
                           onClick={async () => {
                             if (window.confirm(`Delete expense ${exp.id}?`)) {
                               await deleteExpense(exp.id);
                             }
                           }}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
                         >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                          Delete
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -1151,34 +1533,14 @@ export default function SoftwareAdminPage() {
       {/* Case Modal */}
       <CaseDialog open={openCaseModal} onClose={() => setOpenCaseModal(false)} caseToEdit={selectedCase} />
 
+      {/* Court / Forum Modal */}
+      <ForumDialog open={openForumModal} onClose={() => setOpenForumModal(false)} forumToEdit={selectedForum} />
+
       {/* Category Modal */}
       <CategoryDialog open={openCategoryModal} onClose={() => setOpenCategoryModal(false)} categoryToEdit={selectedCategory} />
 
       {/* Expense Modal */}
       <ExpenseDialog open={openExpenseModal} onClose={() => setOpenExpenseModal(false)} expenseToEdit={selectedExpense} />
-
-      {/* Role Change Dialog */}
-      <Dialog open={roleDialogOpen} onClose={() => setRoleDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Change Role for {userToEdit?.displayName}</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <TextField
-            select
-            label="Assigned Role"
-            value={selectedNewRole}
-            onChange={(e) => setSelectedNewRole(e.target.value)}
-            fullWidth
-            size="small"
-          >
-            <MenuItem value="staff">Staff Member (Submit expenses & view advances)</MenuItem>
-            <MenuItem value="accounts_admin">Accounts Admin / Boss (Audit, advances, reports)</MenuItem>
-            <MenuItem value="software_admin">Software Admin (Master control)</MenuItem>
-          </TextField>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setRoleDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveRole}>Update Role</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

@@ -39,10 +39,16 @@ service cloud.firestore {
       allow write: if isSoftwareAdmin();
     }
 
+    // Court Forums: Read by all authenticated users; modified by Software Admin
+    match /forums/{forumId} {
+      allow read: if isAuthenticated();
+      allow write: if isSoftwareAdmin();
+    }
+
     // Expenses:
     // - Authenticated staff can create expenses and read case disbursements
     // - Accounts Admin and Software Admin can audit and update all expenses
-    // - Staff can edit or delete their own unapproved expenses
+    // - Staff can edit or delete their own expenses
     match /expenses/{expenseId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.resource.data.staffId == request.auth.uid;

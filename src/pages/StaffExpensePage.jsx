@@ -278,7 +278,7 @@ export default function StaffExpensePage() {
             </Box>
           </Box>
 
-          <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #eef2f6" }}>
+          <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #cbd5e1" }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -382,16 +382,25 @@ export default function StaffExpensePage() {
                       </TableCell>
 
                       <TableCell align="right">
-                        <Tooltip title="Edit entry">
-                          <IconButton size="small" onClick={() => handleEdit(exp)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete entry">
-                          <IconButton size="small" color="error" onClick={() => handleDelete(exp.id)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => handleEdit(exp)}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => handleDelete(exp.id)}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Delete
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

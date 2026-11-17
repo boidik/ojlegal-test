@@ -56,25 +56,37 @@ export const AuthProvider = ({ children }) => {
             const userRef = doc(db, "users", firebaseUser.uid);
             const userSnap = await getDoc(userRef);
 
+            const isOwner = firebaseUser.email && (firebaseUser.email.toLowerCase().includes("boidik") || firebaseUser.email.toLowerCase().includes("admin@ojlegal"));
+
             if (userSnap.exists()) {
               const userData = userSnap.data();
+              let assignedRole = userData.role || (isOwner ? "software_admin" : "staff");
+              if (isOwner && userData.role !== "software_admin") {
+                assignedRole = "software_admin";
+                try {
+                  await setDoc(userRef, { role: "software_admin" }, { merge: true });
+                } catch (e) {}
+              }
+
               setCurrentUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
                 displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email.split("@")[0],
-                role: userData.role || "staff",
-                designation: userData.designation || (userData.role === "software_admin" ? "Systems Administrator" : userData.role === "accounts_admin" ? "Accounts Head / Boss" : "Legal Associate"),
+                role: assignedRole,
+                designation: userData.designation || (assignedRole === "software_admin" ? "Systems Administrator" : assignedRole === "accounts_admin" ? "Accounts Head / Boss" : "Legal Associate"),
                 phone: userData.phone || firebaseUser.phoneNumber || "",
                 isActive: userData.isActive !== false,
               });
             } else {
-              let role = "staff";
-              try {
-                const allUsersSnap = await getDocs(collection(db, "users"));
-                if (allUsersSnap.empty) {
-                  role = "software_admin";
-                }
-              } catch (e) {}
+              let role = isOwner ? "software_admin" : "staff";
+              if (!isOwner) {
+                try {
+                  const allUsersSnap = await getDocs(collection(db, "users"));
+                  if (allUsersSnap.empty) {
+                    role = "software_admin";
+                  }
+                } catch (e) {}
+              }
 
               const newProfile = {
                 uid: firebaseUser.uid,

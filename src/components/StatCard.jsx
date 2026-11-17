@@ -15,7 +15,8 @@ export default function StatCard({ title, value, subtitle, icon: Icon, color = "
           height: "100%",
           position: "relative",
           overflow: "hidden",
-          borderLeft: `4px solid ${color}`,
+          border: "1px solid #cbd5e1",
+          borderLeft: `5px solid ${color}`,
         }}
       >
         <CardContent sx={{ p: 2.5 }}>

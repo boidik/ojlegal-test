@@ -90,61 +90,19 @@ export const STANDARD_LEGAL_CATEGORIES = [
   }
 ];
 
-// Offline fallback mock data for testing only when Firebase is not configured
-export const OFFLINE_DEMO_CASES = [
-  {
-    id: "CASE-DEMO-001",
-    caseNumber: "WP(C) 4120/2026",
-    title: "Apex Technologies vs. State of NCT",
-    clientName: "Apex Tech Global Pvt Ltd",
-    court: "Delhi High Court",
-    leadAttorney: "Adv. Rajesh Varma",
-    status: "active",
-    budget: 250000,
-    createdAt: "2026-01-15"
-  },
-  {
-    id: "CASE-DEMO-002",
-    caseNumber: "ARB/DEL/882/2026",
-    title: "Metro Infra Ltd vs. Union of India (Arbitration)",
-    clientName: "Metro Infrastructure Consortium",
-    court: "International Arbitration Centre",
-    leadAttorney: "Adv. Meenakshi Sundaram",
-    status: "active",
-    budget: 600000,
-    createdAt: "2026-02-01"
-  }
+// Standard legal forums / courts that Software Admin can manage dynamically
+export const STANDARD_COURT_FORUMS = [
+  { id: "FORUM-01", name: "Supreme Court of India", city: "New Delhi", category: "Apex Appellate" },
+  { id: "FORUM-02", name: "Delhi High Court", city: "New Delhi", category: "High Court" },
+  { id: "FORUM-03", name: "Bombay High Court", city: "Mumbai", category: "High Court" },
+  { id: "FORUM-04", name: "Commercial Court / Commercial Appellate Bench", city: "New Delhi", category: "Commercial Division" },
+  { id: "FORUM-05", name: "National Company Law Tribunal (NCLT / NCLAT)", city: "Principal Bench", category: "Corporate Insolvency" },
+  { id: "FORUM-06", name: "International Arbitration Centre (DIAC / MCIA)", city: "New Delhi / Mumbai", category: "Arbitration" },
+  { id: "FORUM-07", name: "District & Sessions Court (Patiala House / Saket / Tis Hazari)", city: "Delhi", category: "District Court" },
+  { id: "FORUM-08", name: "Debt Recovery Tribunal (DRT / DRAT)", city: "Delhi", category: "Recovery Tribunal" },
+  { id: "FORUM-09", name: "National Consumer Disputes Redressal Commission (NCDRC)", city: "New Delhi", category: "Consumer Forum" }
 ];
 
-export const OFFLINE_DEMO_USERS = [
-  {
-    uid: "user-software-admin",
-    email: "admin@ojlegal.com",
-    displayName: "Software Admin (You)",
-    role: "software_admin",
-    designation: "Principal Tech & Systems Admin",
-    phone: "+91 98110 00001",
-    isActive: true
-  },
-  {
-    uid: "user-accounts-boss",
-    email: "boss@ojlegal.com",
-    displayName: "Mr. Vikramaditya Sen (Managing Partner / Boss)",
-    role: "accounts_admin",
-    designation: "Managing Partner & Head of Accounts",
-    phone: "+91 98110 00002",
-    isActive: true
-  },
-  {
-    uid: "user-staff-1",
-    email: "priya.sharma@ojlegal.com",
-    displayName: "Priya Sharma",
-    role: "staff",
-    designation: "Senior Associate Advocate",
-    phone: "+91 98110 00003",
-    isActive: true
-  }
-];
-
-export const INITIAL_USERS = OFFLINE_DEMO_USERS;
-
+export const OFFLINE_DEMO_CASES = [];
+export const OFFLINE_DEMO_USERS = [];
+export const INITIAL_USERS = [];

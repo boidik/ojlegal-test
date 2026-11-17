@@ -154,21 +154,26 @@ export default function Navbar({ activeTab, setActiveTab }) {
             </Box>
           </Box>
 
-          {/* Navigation Tabs - ORDERED ACCORDING TO ROLE PRIORITY */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {/* Navigation Tabs - High Contrast, Sharp Role-Based Tabs */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
             {/* Software Admin Console (First priority for Software Admin) */}
             {isSoftwareAdmin && (
               <Button
                 startIcon={<SettingsIcon />}
                 onClick={() => setActiveTab("software_admin")}
                 sx={{
-                  color: activeTab === "software_admin" ? "#ffffff" : "rgba(255,255,255,0.75)",
-                  backgroundColor: activeTab === "software_admin" ? "rgba(255,255,255,0.22)" : "transparent",
-                  border: activeTab === "software_admin" ? "1px solid rgba(255,255,255,0.35)" : "1px solid transparent",
+                  color: activeTab === "software_admin" ? "#0f2942" : "#ffffff",
+                  backgroundColor: activeTab === "software_admin" ? "#ffffff" : "rgba(255,255,255,0.12)",
+                  border: activeTab === "software_admin" ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
                   borderRadius: 2,
-                  px: 2,
-                  fontWeight: 700,
-                  "&:hover": { backgroundColor: "rgba(255,255,255,0.28)" },
+                  px: 2.2,
+                  py: 0.8,
+                  fontWeight: 800,
+                  fontSize: "0.85rem",
+                  boxShadow: activeTab === "software_admin" ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
+                  "&:hover": {
+                    backgroundColor: activeTab === "software_admin" ? "#f8fafc" : "rgba(255,255,255,0.24)",
+                  },
                 }}
               >
                 Software Admin
@@ -181,13 +186,18 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 startIcon={<AssessmentIcon />}
                 onClick={() => setActiveTab("accounts_admin")}
                 sx={{
-                  color: activeTab === "accounts_admin" ? "#ffffff" : "rgba(255,255,255,0.75)",
-                  backgroundColor: activeTab === "accounts_admin" ? "rgba(255,255,255,0.22)" : "transparent",
-                  border: activeTab === "accounts_admin" ? "1px solid rgba(255,255,255,0.35)" : "1px solid transparent",
+                  color: activeTab === "accounts_admin" ? "#0f2942" : "#ffffff",
+                  backgroundColor: activeTab === "accounts_admin" ? "#ffffff" : "rgba(255,255,255,0.12)",
+                  border: activeTab === "accounts_admin" ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
                   borderRadius: 2,
-                  px: 2,
-                  fontWeight: 700,
-                  "&:hover": { backgroundColor: "rgba(255,255,255,0.28)" },
+                  px: 2.2,
+                  py: 0.8,
+                  fontWeight: 800,
+                  fontSize: "0.85rem",
+                  boxShadow: activeTab === "accounts_admin" ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
+                  "&:hover": {
+                    backgroundColor: activeTab === "accounts_admin" ? "#f8fafc" : "rgba(255,255,255,0.24)",
+                  },
                 }}
               >
                 Accounts Admin (Boss)
@@ -199,13 +209,18 @@ export default function Navbar({ activeTab, setActiveTab }) {
               startIcon={<AccountBalanceWalletIcon />}
               onClick={() => setActiveTab("staff")}
               sx={{
-                color: activeTab === "staff" ? "#ffffff" : "rgba(255,255,255,0.75)",
-                backgroundColor: activeTab === "staff" ? "rgba(255,255,255,0.22)" : "transparent",
-                border: activeTab === "staff" ? "1px solid rgba(255,255,255,0.35)" : "1px solid transparent",
+                color: activeTab === "staff" ? "#0f2942" : "#ffffff",
+                backgroundColor: activeTab === "staff" ? "#ffffff" : "rgba(255,255,255,0.12)",
+                border: activeTab === "staff" ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
                 borderRadius: 2,
-                px: 2,
-                fontWeight: 600,
-                "&:hover": { backgroundColor: "rgba(255,255,255,0.28)" },
+                px: 2.2,
+                py: 0.8,
+                fontWeight: 800,
+                fontSize: "0.85rem",
+                boxShadow: activeTab === "staff" ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
+                "&:hover": {
+                  backgroundColor: activeTab === "staff" ? "#f8fafc" : "rgba(255,255,255,0.24)",
+                },
               }}
             >
               Staff Expenses
@@ -313,10 +328,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
             size="small"
             type="password"
             label="Master Passcode"
-            placeholder="Enter passcode"
+            placeholder="Enter law firm passcode"
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
-            helperText="Default Passcode: ojlegal2026"
             autoFocus
           />
 

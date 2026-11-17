@@ -334,7 +334,7 @@ export default function AccountsAdminPage() {
       </Card>
 
       {/* Comprehensive Multi-Parameter Filter Card */}
-      <Card sx={{ mb: 4 }}>
+      <Card sx={{ mb: 4, border: "1px solid #cbd5e1" }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -475,7 +475,7 @@ export default function AccountsAdminPage() {
 
       {/* TAB 0: Itemized Expenses Ledger */}
       {activeTab === 0 && (
-        <Card>
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
           <TableContainer component={Paper} elevation={0}>
             <Table>
               <TableHead>
@@ -591,30 +591,32 @@ export default function AccountsAdminPage() {
                       </TableCell>
 
                       <TableCell align="right">
-                        <Tooltip title="Edit voucher">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedExpense(exp);
-                              setOpenExpenseModal(true);
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete voucher">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={async () => {
-                              if (window.confirm("Delete this expense voucher?")) {
-                                await deleteExpense(exp.id);
-                              }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => {
+                            setSelectedExpense(exp);
+                            setOpenExpenseModal(true);
+                          }}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                          onClick={async () => {
+                            if (window.confirm("Delete this expense voucher?")) {
+                              await deleteExpense(exp.id);
+                            }
+                          }}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Delete
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -627,7 +629,7 @@ export default function AccountsAdminPage() {
 
       {/* TAB 1: Staff Advances & Float Reconciliation */}
       {activeTab === 1 && (
-        <Card>
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
           <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Box>
               <Typography variant="subtitle1" fontWeight={700}>
@@ -745,30 +747,32 @@ export default function AccountsAdminPage() {
                         </TableCell>
 
                         <TableCell align="right">
-                          <Tooltip title="Edit advance">
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedAdvance(adv);
-                                setOpenAdvanceModal(true);
-                              }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete advance record">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={async () => {
-                                if (window.confirm("Remove this advance record?")) {
-                                  await deleteAdvance(adv.id);
-                                }
-                              }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                            onClick={() => {
+                              setSelectedAdvance(adv);
+                              setOpenAdvanceModal(true);
+                            }}
+                            sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                            onClick={async () => {
+                              if (window.confirm("Remove this advance record?")) {
+                                await deleteAdvance(adv.id);
+                              }
+                            }}
+                            sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                          >
+                            Delete
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );

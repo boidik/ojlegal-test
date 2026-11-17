@@ -18,6 +18,11 @@ import {
   updateCategory as dbUpdateCategory,
   deleteCategory as dbDeleteCategory,
   seedStandardCategories as dbSeedStandardCategories,
+  getForums,
+  addForum as dbAddForum,
+  updateForum as dbUpdateForum,
+  deleteForum as dbDeleteForum,
+  seedStandardForums as dbSeedStandardForums,
   getSettings,
   updateSettings as dbUpdateSettings,
   getUsers,
@@ -33,6 +38,7 @@ export const AppProvider = ({ children }) => {
   const [expenses, setExpenses] = useState([]);
   const [advances, setAdvances] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [forums, setForums] = useState([]);
   const [settings, setSettings] = useState({});
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,11 +63,12 @@ export const AppProvider = ({ children }) => {
     setLoading(true);
     try {
       await initializeDataStore();
-      const [fetchedCases, fetchedExpenses, fetchedAdvances, fetchedCategories, fetchedSettings, fetchedUsers] = await Promise.all([
+      const [fetchedCases, fetchedExpenses, fetchedAdvances, fetchedCategories, fetchedForums, fetchedSettings, fetchedUsers] = await Promise.all([
         getCases(),
         getExpenses(),
         getAdvances(),
         getCategories(),
+        getForums(),
         getSettings(),
         getUsers()
       ]);
@@ -70,6 +77,7 @@ export const AppProvider = ({ children }) => {
       setExpenses(fetchedExpenses);
       setAdvances(fetchedAdvances);
       setCategories(fetchedCategories);
+      setForums(fetchedForums);
       setSettings(fetchedSettings);
       setUsers(fetchedUsers);
       applyFaviconAndTitle(fetchedSettings);
@@ -231,6 +239,49 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ==================== FORUM / COURT HANDLERS ====================
+  const handleAddForum = async (data) => {
+    try {
+      const added = await dbAddForum(data);
+      await refreshData();
+      showNotification("Court Forum registered.", "success");
+      return added;
+    } catch (e) {
+      showNotification("Failed to add forum: " + e.message, "error");
+    }
+  };
+
+  const handleUpdateForum = async (id, data) => {
+    try {
+      const updated = await dbUpdateForum(id, data);
+      await refreshData();
+      showNotification("Court Forum updated.", "success");
+      return updated;
+    } catch (e) {
+      showNotification("Failed to update forum: " + e.message, "error");
+    }
+  };
+
+  const handleDeleteForum = async (id) => {
+    try {
+      await dbDeleteForum(id);
+      await refreshData();
+      showNotification("Court Forum removed.", "info");
+    } catch (e) {
+      showNotification("Failed to delete forum: " + e.message, "error");
+    }
+  };
+
+  const handleSeedStandardForums = async () => {
+    try {
+      await dbSeedStandardForums();
+      await refreshData();
+      showNotification("Standard court forums populated in Firestore!", "success");
+    } catch (e) {
+      showNotification("Failed to seed forums: " + e.message, "error");
+    }
+  };
+
   // ==================== SETTINGS & USERS ====================
   const handleSaveSettings = async (data) => {
     try {
@@ -261,6 +312,7 @@ export const AppProvider = ({ children }) => {
         expenses,
         advances,
         categories,
+        forums,
         settings,
         users,
         loading,
@@ -287,6 +339,11 @@ export const AppProvider = ({ children }) => {
         seedStandardCategories: handleSeedStandardCategories,
         updateCategory: handleUpdateCategory,
         deleteCategory: handleDeleteCategory,
+        // Forum actions
+        addForum: handleAddForum,
+        updateForum: handleUpdateForum,
+        deleteForum: handleDeleteForum,
+        seedStandardForums: handleSeedStandardForums,
         // Settings & Users
         saveSettings: handleSaveSettings,
         updateUserRole: handleUpdateUserRole,
