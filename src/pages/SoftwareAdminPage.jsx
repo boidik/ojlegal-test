@@ -139,7 +139,7 @@ export default function SoftwareAdminPage() {
   const [wipingAllData, setWipingAllData] = useState(false);
 
   // Firm Details Form State
-  const [firmForm, setFirmForm] = useState({
+  const [firmForm, setFirmForm] = useState(() => ({
     firmName: settings.firmName || "OJ Legal Advocates & Solicitors",
     tagline: settings.tagline || "",
     registrationNo: settings.registrationNo || "",
@@ -156,7 +156,7 @@ export default function SoftwareAdminPage() {
     signatureApprovedBy: settings.signatureApprovedBy || "Approved by Managing Partner",
     allowAccountsAdminCases: settings.allowAccountsAdminCases !== false,
     allowAccountsAdminForums: settings.allowAccountsAdminForums !== false,
-  });
+  }));
 
   // PDF Report Studio Form State
   const [pdfForm, setPdfForm] = useState(() => ({
@@ -165,7 +165,7 @@ export default function SoftwareAdminPage() {
   }));
 
   // Branding & UI Form State
-  const [brandForm, setBrandForm] = useState({
+  const [brandForm, setBrandForm] = useState(() => ({
     navbarTitle: settings.navbarTitle || settings.firmName || "OJ Legal Advocates",
     headerBgColor: settings.headerBgColor || "#0f2942",
     headerTextColor: settings.headerTextColor || "#ffffff",
@@ -174,40 +174,40 @@ export default function SoftwareAdminPage() {
     customLogoUrl: settings.customLogoUrl || "",
     faviconType: settings.faviconType || "scales",
     customFaviconUrl: settings.customFaviconUrl || "",
-  });
+  }));
 
   useEffect(() => {
     if (settings && Object.keys(settings).length > 0) {
       setFirmForm((prev) => ({
         ...prev,
-        firmName: settings.firmName || prev.firmName,
-        tagline: settings.tagline || prev.tagline,
-        registrationNo: settings.registrationNo || prev.registrationNo,
-        firmAddress: settings.firmAddress || prev.firmAddress,
-        contactEmail: settings.contactEmail || prev.contactEmail,
-        contactPhone: settings.contactPhone || prev.contactPhone,
-        altPhone: settings.altPhone || prev.altPhone,
-        websiteUrl: settings.websiteUrl || prev.websiteUrl,
-        currencySymbol: settings.currencySymbol || prev.currencySymbol,
-        reportHeader: settings.reportHeader || prev.reportHeader,
-        reportDisclaimer: settings.reportDisclaimer || prev.reportDisclaimer,
-        signaturePreparedBy: settings.signaturePreparedBy || prev.signaturePreparedBy,
-        signatureVerifiedBy: settings.signatureVerifiedBy || prev.signatureVerifiedBy,
-        signatureApprovedBy: settings.signatureApprovedBy || prev.signatureApprovedBy,
-        allowAccountsAdminCases: settings.allowAccountsAdminCases !== false,
-        allowAccountsAdminForums: settings.allowAccountsAdminForums !== false,
+        firmName: settings.firmName !== undefined ? settings.firmName : prev.firmName,
+        tagline: settings.tagline !== undefined ? settings.tagline : prev.tagline,
+        registrationNo: settings.registrationNo !== undefined ? settings.registrationNo : prev.registrationNo,
+        firmAddress: settings.firmAddress !== undefined ? settings.firmAddress : prev.firmAddress,
+        contactEmail: settings.contactEmail !== undefined ? settings.contactEmail : prev.contactEmail,
+        contactPhone: settings.contactPhone !== undefined ? settings.contactPhone : prev.contactPhone,
+        altPhone: settings.altPhone !== undefined ? settings.altPhone : prev.altPhone,
+        websiteUrl: settings.websiteUrl !== undefined ? settings.websiteUrl : prev.websiteUrl,
+        currencySymbol: settings.currencySymbol !== undefined ? settings.currencySymbol : prev.currencySymbol,
+        reportHeader: settings.reportHeader !== undefined ? settings.reportHeader : prev.reportHeader,
+        reportDisclaimer: settings.reportDisclaimer !== undefined ? settings.reportDisclaimer : prev.reportDisclaimer,
+        signaturePreparedBy: settings.signaturePreparedBy !== undefined ? settings.signaturePreparedBy : prev.signaturePreparedBy,
+        signatureVerifiedBy: settings.signatureVerifiedBy !== undefined ? settings.signatureVerifiedBy : prev.signatureVerifiedBy,
+        signatureApprovedBy: settings.signatureApprovedBy !== undefined ? settings.signatureApprovedBy : prev.signatureApprovedBy,
+        allowAccountsAdminCases: settings.allowAccountsAdminCases !== undefined ? settings.allowAccountsAdminCases : prev.allowAccountsAdminCases,
+        allowAccountsAdminForums: settings.allowAccountsAdminForums !== undefined ? settings.allowAccountsAdminForums : prev.allowAccountsAdminForums,
       }));
 
       setBrandForm((prev) => ({
         ...prev,
-        navbarTitle: settings.navbarTitle || prev.navbarTitle,
-        headerBgColor: settings.headerBgColor || prev.headerBgColor,
-        headerTextColor: settings.headerTextColor || prev.headerTextColor,
-        headerAccentColor: settings.headerAccentColor || prev.headerAccentColor,
-        navbarIconType: settings.navbarIconType || prev.navbarIconType,
-        customLogoUrl: settings.customLogoUrl || prev.customLogoUrl,
-        faviconType: settings.faviconType || prev.faviconType,
-        customFaviconUrl: settings.customFaviconUrl || prev.customFaviconUrl,
+        navbarTitle: settings.navbarTitle !== undefined ? settings.navbarTitle : prev.navbarTitle,
+        headerBgColor: settings.headerBgColor !== undefined ? settings.headerBgColor : prev.headerBgColor,
+        headerTextColor: settings.headerTextColor !== undefined ? settings.headerTextColor : prev.headerTextColor,
+        headerAccentColor: settings.headerAccentColor !== undefined ? settings.headerAccentColor : prev.headerAccentColor,
+        navbarIconType: settings.navbarIconType !== undefined ? settings.navbarIconType : prev.navbarIconType,
+        customLogoUrl: settings.customLogoUrl !== undefined ? settings.customLogoUrl : prev.customLogoUrl,
+        faviconType: settings.faviconType !== undefined ? settings.faviconType : prev.faviconType,
+        customFaviconUrl: settings.customFaviconUrl !== undefined ? settings.customFaviconUrl : prev.customFaviconUrl,
       }));
 
       if (settings.pdfLayout) {
@@ -236,22 +236,34 @@ export default function SoftwareAdminPage() {
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState(null);
 
-  // Save Handlers
+  // Save Handlers - Atomically preserve firm identity, branding styling, and PDF layouts
   const handleSaveFirmDetails = async (e) => {
     e.preventDefault();
-    await saveSettings(firmForm);
+    await saveSettings({
+      ...brandForm,
+      ...firmForm,
+      pdfLayout: pdfForm,
+    });
     showNotification("Law firm official details updated successfully!", "success");
   };
 
   const handleSaveBranding = async (e) => {
     e.preventDefault();
-    await saveSettings(brandForm);
+    await saveSettings({
+      ...firmForm,
+      ...brandForm,
+      pdfLayout: pdfForm,
+    });
     showNotification("Branding, UI & Favicon settings saved successfully!", "success");
   };
 
   const handleSavePdfLayout = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    await saveSettings({ pdfLayout: pdfForm });
+    await saveSettings({
+      ...firmForm,
+      ...brandForm,
+      pdfLayout: pdfForm,
+    });
     showNotification("Custom PDF Report Layout saved! All client statements and audit ledgers will now use this exact pixel geometry.", "success");
   };
 

@@ -379,7 +379,8 @@ export const AppProvider = ({ children }) => {
   // ==================== SETTINGS & USERS ====================
   const handleSaveSettings = async (data) => {
     try {
-      const updated = await dbUpdateSettings(data);
+      const mergedWithCurrent = { ...(settings || {}), ...(data || {}) };
+      const updated = await dbUpdateSettings(mergedWithCurrent);
       setSettings(updated);
       applyFaviconAndTitle(updated);
       showNotification("Firm details, layout & favicon updated!", "success");

@@ -121,20 +121,24 @@ export const getSettings = async () => {
       const snap = await getDoc(doc(db, "system", "firm_settings"));
       if (snap.exists()) {
         const data = snap.data();
-        applyFaviconAndTitle(data);
-        return data;
+        const merged = { ...INITIAL_SETTINGS, ...data };
+        setLocal(STORAGE_KEYS.SETTINGS, merged);
+        applyFaviconAndTitle(merged);
+        return merged;
       }
     } catch (e) {
       console.warn("Remote getSettings failed, using local fallback", e);
     }
   }
   const s = getLocal(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
-  applyFaviconAndTitle(s);
-  return s;
+  const merged = { ...INITIAL_SETTINGS, ...s };
+  applyFaviconAndTitle(merged);
+  return merged;
 };
 
 export const updateSettings = async (newSettings) => {
-  const merged = { ...INITIAL_SETTINGS, ...newSettings };
+  const current = await getSettings();
+  const merged = { ...INITIAL_SETTINGS, ...current, ...newSettings };
   if (isFirebaseConfigured() && db) {
     try {
       await setDoc(doc(db, "system", "firm_settings"), merged, { merge: true });
@@ -910,7 +914,7 @@ export const deleteAllData = async (preserveAdminEmail = "advocate@boidikghosh.i
 
     // 7. Reset system settings to initial default
     try {
-      await setDoc(doc(db, "system", "general"), INITIAL_SETTINGS);
+      await setDoc(doc(db, "system", "firm_settings"), INITIAL_SETTINGS);
     } catch (e) {
       console.warn("Error resetting system settings:", e);
     }
