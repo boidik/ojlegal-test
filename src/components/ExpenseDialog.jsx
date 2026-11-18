@@ -48,8 +48,14 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
   const activeCases = cases.filter(c => c.status === "active");
 
   // Get active advances available for this staff member
+  const targetStaffId = expenseToEdit ? expenseToEdit.staffId : currentUser?.uid;
+  const targetStaffEmail = expenseToEdit ? expenseToEdit.staffEmail : currentUser?.email;
+  const targetStaffName = expenseToEdit ? expenseToEdit.staffName : currentUser?.displayName;
+
   const staffAdvances = advances.filter(
-    a => a.staffId === (expenseToEdit ? expenseToEdit.staffId : currentUser?.uid) &&
+    a => (a.staffId === targetStaffId ||
+          (targetStaffEmail && (a.staffEmail || "").toLowerCase() === targetStaffEmail.toLowerCase()) ||
+          (targetStaffName && (a.staffName || "").toLowerCase() === targetStaffName.toLowerCase())) &&
          (a.amount - (a.usedAmount || 0) > 0)
   );
 

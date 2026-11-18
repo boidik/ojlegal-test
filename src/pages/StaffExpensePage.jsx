@@ -46,10 +46,18 @@ export default function StaffExpensePage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filter expenses belonging to this logged in staff member
-  const myExpenses = expenses.filter(e => e.staffId === currentUser?.uid || e.staffEmail === currentUser?.email);
+  const myExpenses = expenses.filter(e =>
+    e.staffId === currentUser?.uid ||
+    (currentUser?.email && (e.staffEmail || "").toLowerCase() === currentUser.email.toLowerCase()) ||
+    (currentUser?.displayName && (e.staffName || "").toLowerCase() === currentUser.displayName.toLowerCase())
+  );
 
   // Filter advances belonging to this logged in staff member
-  const myAdvances = advances.filter(a => a.staffId === currentUser?.uid || a.staffEmail === currentUser?.email);
+  const myAdvances = advances.filter(a =>
+    a.staffId === currentUser?.uid ||
+    (currentUser?.email && (a.staffEmail || "").toLowerCase() === currentUser.email.toLowerCase()) ||
+    (currentUser?.displayName && (a.staffName || "").toLowerCase() === currentUser.displayName.toLowerCase())
+  );
 
   const totalMyExpenses = myExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const totalAdvancesReceived = myAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);

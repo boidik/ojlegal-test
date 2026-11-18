@@ -101,86 +101,267 @@ export const exportExpensesToExcel = ({
   XLSX.writeFile(wb, `${fileName}_${dateStr}.xlsx`);
 };
 
+// Helper: Convert Hex color to RGB tuple
+export const hexToRgb = (hex, fallback = [15, 41, 66]) => {
+  if (!hex || typeof hex !== "string") return fallback;
+  const clean = hex.replace("#", "").trim();
+  if (clean.length === 3) {
+    return [
+      parseInt(clean[0] + clean[0], 16),
+      parseInt(clean[1] + clean[1], 16),
+      parseInt(clean[2] + clean[2], 16),
+    ];
+  }
+  if (clean.length === 6) {
+    return [
+      parseInt(clean.substring(0, 2), 16),
+      parseInt(clean.substring(2, 4), 16),
+      parseInt(clean.substring(4, 6), 16),
+    ];
+  }
+  return fallback;
+};
+
+// Default PDF Layout Configuration
+export const DEFAULT_PDF_LAYOUT = {
+  orientation: "portrait", // "portrait" | "landscape"
+  format: "a4", // "a4" | "letter" | "legal"
+  marginMm: 14, // 10 to 25 mm
+  primaryColor: "#0f2942", // Navy
+  accentColor: "#c99738", // Gold
+  bannerStyle: "full_banner", // "full_banner" | "minimal" | "boxed" | "double_rule"
+  bannerHeight: 28, // 20 to 45 mm
+  headerTitle: "", // Custom override or empty to use firmName
+  headerTitleFontSize: 13,
+  showAddress: true,
+  showDateStatus: true,
+  statementTitle: "", // Empty defaults to reportHeader
+  statementTitleFontSize: 11,
+  showFilterBox: true,
+  showKpiCards: true,
+  tableTheme: "striped", // "striped" | "grid" | "plain"
+  tableFontSize: 7.5,
+  tableHeaderFontSize: 8,
+  tableCellPadding: 2, // mm
+  alternateRowColor: "#f8fafc",
+  showColumnIndex: true,
+  showColumnDate: true,
+  showColumnCase: true,
+  showColumnDescription: true,
+  showColumnCategory: true,
+  showColumnPaymentMode: true,
+  showColumnStaffName: true,
+  showColumnAmount: true,
+  showDisclaimer: true,
+  disclaimerFontSize: 6.8,
+  disclaimerItalic: true,
+  showSignatures: true,
+  signatureCount: 3, // 2 or 3
+  signer1Label: "", // Empty defaults to settings.signaturePreparedBy
+  signer2Label: "", // Empty defaults to settings.signatureVerifiedBy
+  signer3Label: "", // Empty defaults to settings.signatureApprovedBy
+  showSignatureDates: true,
+  showFooter: true,
+  footerText: "Confidential Client Disbursement Record • Attorney-Client Privileged",
+  footerFontSize: 7,
+};
+
 // ==================== PDF REPORT EXPORT ====================
 export const exportExpensesToPDF = ({
   expenses = [],
   advances = [],
   settings = {},
   filterSummary = {},
-  fileName = "lawfirm_expense_voucher_statement"
+  fileName = "lawfirm_expense_voucher_statement",
+  returnDoc = false,
 }) => {
+  const custom = settings.pdfLayout || {};
+  const layout = { ...DEFAULT_PDF_LAYOUT, ...custom };
+
+  const primaryColor = hexToRgb(layout.primaryColor, [15, 41, 66]);
+  const accentGold = hexToRgb(layout.accentColor, [201, 151, 56]);
+  const altRowColor = hexToRgb(layout.alternateRowColor, [248, 250, 252]);
+
   const doc = new jsPDF({
-    orientation: "portrait",
+    orientation: layout.orientation || "portrait",
     unit: "mm",
-    format: "a4"
+    format: layout.format || "a4",
   });
 
-  const currency = settings.currencySymbol || "Rs.";
+  const currency = settings.currencySymbol || "₹";
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = Math.max(8, Math.min(30, Number(layout.marginMm) || 14));
+  const contentWidth = pageWidth - (margin * 2);
 
-  // Primary Theme Color (Default Navy Blue)
-  const primaryColor = [15, 41, 66];
-  const accentGold = [201, 151, 56];
+  // 1. Header Banner Rendering
+  const firmTitle = (layout.headerTitle || settings.firmName || "LEXVERITAS & PARTNERS ADVOCATES").toUpperCase();
+  const tagline = settings.tagline || "Advocates & Legal Consultants | Litigation & Technical Advisory";
+  const address = settings.firmAddress || "High Court Chamber Complex";
+  const bannerHeight = Math.max(20, Math.min(50, Number(layout.bannerHeight) || 28));
 
-  // 1. Header Banner
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 28, "F");
+  let currentY = margin;
 
+  if (layout.bannerStyle === "full_banner") {
+    // Solid colored full-width header
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, pageWidth, bannerHeight, "F");
+
+    // Subtle gold bottom accent border
+    doc.setDrawColor(...accentGold);
+    doc.setLineWidth(0.8);
+    doc.line(0, bannerHeight, pageWidth, bannerHeight);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(Number(layout.headerTitleFontSize) || 13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(firmTitle, margin, 12);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(220, 230, 242);
+    doc.text(tagline, margin, 17.5);
+
+    if (layout.showAddress) {
+      doc.text(address, margin, 22.5);
+    }
+
+    if (layout.showDateStatus) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(230, 240, 250);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 12, { align: "right" });
+      doc.text(`Status: Certified Final`, pageWidth - margin, 17.5, { align: "right" });
+    }
+
+    currentY = bannerHeight + 8;
+  } else if (layout.bannerStyle === "boxed") {
+    // Elegant framed box
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.7);
+    doc.setFillColor(252, 253, 255);
+    doc.roundedRect(margin, currentY, contentWidth, bannerHeight, 2, 2, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(Number(layout.headerTitleFontSize) || 13);
+    doc.setTextColor(...primaryColor);
+    doc.text(firmTitle, margin + 4, currentY + 7);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(70, 80, 95);
+    doc.text(tagline, margin + 4, currentY + 12.5);
+
+    if (layout.showAddress) {
+      doc.text(address, margin + 4, currentY + 17.5);
+    }
+
+    if (layout.showDateStatus) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(...accentGold);
+      doc.text(`Certified Report • ${new Date().toLocaleDateString()}`, pageWidth - margin - 4, currentY + 7, { align: "right" });
+    }
+
+    currentY += bannerHeight + 7;
+  } else if (layout.bannerStyle === "double_rule") {
+    // Classical High Court double rule
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(Number(layout.headerTitleFontSize) || 14);
+    doc.setTextColor(...primaryColor);
+    doc.text(firmTitle, margin, currentY + 4);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(60, 70, 85);
+    doc.text(tagline, margin, currentY + 9.5);
+
+    if (layout.showAddress) {
+      doc.text(address, margin, currentY + 14.5);
+    }
+
+    if (layout.showDateStatus) {
+      doc.setFontSize(7.5);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - margin, currentY + 4, { align: "right" });
+    }
+
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.8);
+    doc.line(margin, currentY + 17, pageWidth - margin, currentY + 17);
+    doc.setDrawColor(...accentGold);
+    doc.setLineWidth(0.3);
+    doc.line(margin, currentY + 18.2, pageWidth - margin, currentY + 18.2);
+
+    currentY += 24;
+  } else {
+    // Minimalist clean style
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(Number(layout.headerTitleFontSize) || 13);
+    doc.setTextColor(...primaryColor);
+    doc.text(firmTitle, margin, currentY + 4);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 100);
+    doc.text(tagline, margin, currentY + 9.5);
+
+    if (layout.showAddress) {
+      doc.text(address, margin, currentY + 14.5);
+    }
+
+    if (layout.showDateStatus) {
+      doc.setFontSize(7.5);
+      doc.text(`Report Date: ${new Date().toLocaleDateString()}`, pageWidth - margin, currentY + 4, { align: "right" });
+    }
+
+    doc.setDrawColor(210, 220, 230);
+    doc.setLineWidth(0.4);
+    doc.line(margin, currentY + 17, pageWidth - margin, currentY + 17);
+
+    currentY += 23;
+  }
+
+  // 2. Statement Title
+  const statementTitle = layout.statementTitle || settings.reportHeader || "EXPENDITURE & ADVANCE RECONCILIATION STATEMENT";
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(255, 255, 255);
-  doc.text((settings.firmName || "LEXVERITAS & PARTNERS ADVOCATES").toUpperCase(), 14, 12);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(215, 225, 235);
-  doc.text(settings.tagline || "Advocates & Legal Consultants | Litigation & Technical Advisory", 14, 18);
-  doc.text(settings.firmAddress || "High Court Chamber Complex", 14, 23);
-
-  // Date on the right
-  doc.setFontSize(8);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 14, 12, { align: "right" });
-  doc.text(`Status: Certified Final`, pageWidth - 14, 18, { align: "right" });
-
-  let currentY = 36;
-
-  // Title Block
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(Number(layout.statementTitleFontSize) || 10.5);
   doc.setTextColor(...primaryColor);
-  doc.text(settings.reportHeader || "EXPENDITURE & ADVANCE RECONCILIATION STATEMENT", 14, currentY);
+  doc.text(statementTitle, margin, currentY);
 
-  currentY += 6;
+  currentY += 5.5;
 
-  // Filter Summary Box
-  doc.setFillColor(245, 247, 250);
-  doc.setDrawColor(220, 225, 235);
-  doc.roundedRect(14, currentY, pageWidth - 28, 16, 2, 2, "FD");
+  // 3. Filter Summary Box (Optional)
+  if (layout.showFilterBox !== false) {
+    doc.setFillColor(246, 248, 251);
+    doc.setDrawColor(220, 226, 235);
+    doc.roundedRect(margin, currentY, contentWidth, 15, 1.5, 1.5, "FD");
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(70, 80, 95);
-  doc.text("Matter / Case:", 18, currentY + 6);
-  doc.text("Period:", 18, currentY + 12);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(70, 80, 95);
+    doc.text("Matter / Case:", margin + 4, currentY + 5.5);
+    doc.text("Period:", margin + 4, currentY + 11);
 
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(20, 25, 35);
-  doc.text(filterSummary.caseName || "All Active Matters", 42, currentY + 6);
-  doc.text(`${filterSummary.startDate || "Beginning"} to ${filterSummary.endDate || "Present"}`, 42, currentY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(20, 25, 35);
+    doc.text(filterSummary.caseName || "All Active Matters", margin + 28, currentY + 5.5);
+    doc.text(`${filterSummary.startDate || "Beginning"} to ${filterSummary.endDate || "Present"}`, margin + 28, currentY + 11);
 
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(70, 80, 95);
-  doc.text("Staff Member:", 110, currentY + 6);
-  doc.text("Category Type:", 110, currentY + 12);
+    const midX = margin + (contentWidth / 2);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(70, 80, 95);
+    doc.text("Staff Member:", midX, currentY + 5.5);
+    doc.text("Classification:", midX, currentY + 11);
 
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(20, 25, 35);
-  doc.text(filterSummary.staffName || "All Law Firm Staff", 136, currentY + 6);
-  doc.text(filterSummary.categoryType ? filterSummary.categoryType.toUpperCase() : "ALL EXPENSES", 136, currentY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(20, 25, 35);
+    doc.text(filterSummary.staffName || "All Firm Staff", midX + 24, currentY + 5.5);
+    doc.text(filterSummary.categoryType ? filterSummary.categoryType.toUpperCase() : "ALL CATEGORIES", midX + 24, currentY + 11);
 
-  currentY += 22;
+    currentY += 20;
+  } else {
+    currentY += 3;
+  }
 
-  // KPI Totals
+  // 4. Financial KPI Summary Cards (Optional)
   const totalAmount = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const legalTotal = expenses
     .filter(e => e.categoryType === "legal")
@@ -192,125 +373,264 @@ export const exportExpensesToPDF = ({
     .filter(e => e.paymentMode === "firm_advance" || e.advanceId)
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-  // 4 KPI Cards
-  const cardWidth = (pageWidth - 28 - 9) / 4;
-  const cards = [
-    { label: "Total Incurred", val: `${currency} ${totalAmount.toLocaleString()}`, color: [15, 41, 66] },
-    { label: "Legal Expenses", val: `${currency} ${legalTotal.toLocaleString()}`, color: [30, 70, 120] },
-    { label: "Technical Expenses", val: `${currency} ${techTotal.toLocaleString()}`, color: [180, 83, 9] },
-    { label: "Advance Settled", val: `${currency} ${fromAdvanceTotal.toLocaleString()}`, color: [16, 120, 70] },
-  ];
+  if (layout.showKpiCards !== false) {
+    const cardGap = 3;
+    const cardWidth = (contentWidth - (cardGap * 3)) / 4;
+    const cards = [
+      { label: "Total Incurred", val: `${currency} ${totalAmount.toLocaleString()}`, color: primaryColor },
+      { label: "Legal Expenses", val: `${currency} ${legalTotal.toLocaleString()}`, color: [30, 70, 130] },
+      { label: "Technical / Audit", val: `${currency} ${techTotal.toLocaleString()}`, color: [180, 83, 9] },
+      { label: "Advance Settled", val: `${currency} ${fromAdvanceTotal.toLocaleString()}`, color: [16, 120, 70] },
+    ];
 
-  cards.forEach((c, idx) => {
-    const cardX = 14 + idx * (cardWidth + 3);
-    doc.setFillColor(248, 250, 252);
-    doc.setDrawColor(210, 220, 230);
-    doc.roundedRect(cardX, currentY, cardWidth, 14, 1.5, 1.5, "FD");
+    cards.forEach((c, idx) => {
+      const cardX = margin + idx * (cardWidth + cardGap);
+      doc.setFillColor(248, 250, 253);
+      doc.setDrawColor(215, 225, 235);
+      doc.roundedRect(cardX, currentY, cardWidth, 13, 1.5, 1.5, "FD");
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(90, 100, 115);
-    doc.text(c.label.toUpperCase(), cardX + 3, currentY + 4.5);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.2);
+      doc.setTextColor(85, 95, 110);
+      doc.text(c.label.toUpperCase(), cardX + 3, currentY + 4.2);
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...c.color);
-    doc.text(c.val, cardX + 3, currentY + 10.5);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...c.color);
+      doc.text(c.val, cardX + 3, currentY + 9.8);
+    });
+
+    currentY += 17;
+  }
+
+  // 5. Dynamic Table Columns based on settings
+  const columnsConfig = [];
+  if (layout.showColumnIndex !== false) columnsConfig.push({ id: "idx", title: "#", widthWeight: 0.8, align: "center" });
+  if (layout.showColumnDate !== false) columnsConfig.push({ id: "date", title: "Date", widthWeight: 1.6, align: "left" });
+  if (layout.showColumnCase !== false) columnsConfig.push({ id: "case", title: "Case / Matter", widthWeight: 3.5, align: "left" });
+  if (layout.showColumnDescription !== false) columnsConfig.push({ id: "desc", title: "Description / Purpose", widthWeight: 4.2, align: "left" });
+  if (layout.showColumnCategory !== false) columnsConfig.push({ id: "cat", title: "Category", widthWeight: 2.6, align: "left" });
+  if (layout.showColumnPaymentMode !== false) columnsConfig.push({ id: "mode", title: "Mode", widthWeight: 1.8, align: "left" });
+  if (layout.showColumnStaffName !== false) columnsConfig.push({ id: "staff", title: "Associate", widthWeight: 2.2, align: "left" });
+  if (layout.showColumnAmount !== false) columnsConfig.push({ id: "amount", title: `Amount (${currency})`, widthWeight: 2.2, align: "right" });
+
+  const totalWeight = columnsConfig.reduce((sum, c) => sum + c.widthWeight, 0) || 1;
+  const columnStyles = {};
+  columnsConfig.forEach((col, i) => {
+    columnStyles[i] = {
+      cellWidth: (col.widthWeight / totalWeight) * contentWidth,
+      halign: col.align,
+      fontStyle: col.id === "amount" ? "bold" : "normal",
+    };
   });
 
-  currentY += 19;
-
-  // Table of Expenses
-  const tableHeaders = [
-    ["#", "Date", "Case / Matter", "Expense Description", "Category", "Paid By", `Amount (${currency})`]
-  ];
-
-  const tableRows = expenses.map((exp, idx) => [
-    idx + 1,
-    exp.date,
-    (exp.caseTitle || exp.caseId || "").substring(0, 25),
-    (exp.name || "").substring(0, 30),
-    exp.categoryType ? `[${exp.categoryType[0].toUpperCase()}] ${exp.category}` : exp.category,
-    exp.paymentMode === "firm_advance" ? "Advance" : (exp.paymentMode || "Cash"),
-    `${Number(exp.amount).toLocaleString()}`
-  ]);
+  const tableHeaders = [columnsConfig.map(c => c.title)];
+  const tableRows = expenses.map((exp, idx) => {
+    const row = [];
+    columnsConfig.forEach(col => {
+      switch (col.id) {
+        case "idx": row.push(idx + 1); break;
+        case "date": row.push(exp.date || ""); break;
+        case "case": row.push((exp.caseTitle || exp.caseId || "").substring(0, 32)); break;
+        case "desc": row.push((exp.name || "").substring(0, 40)); break;
+        case "cat": row.push(exp.category || ""); break;
+        case "mode": row.push(exp.paymentMode === "firm_advance" ? "Advance" : (exp.paymentMode || "Cash")); break;
+        case "staff": row.push((exp.staffName || "").substring(0, 20)); break;
+        case "amount": row.push(Number(exp.amount || 0).toLocaleString()); break;
+        default: break;
+      }
+    });
+    return row;
+  });
 
   doc.autoTable({
     startY: currentY,
     head: tableHeaders,
     body: tableRows,
-    theme: "striped",
+    theme: layout.tableTheme || "striped",
     headStyles: {
       fillColor: primaryColor,
       textColor: [255, 255, 255],
-      fontSize: 8,
+      fontSize: Number(layout.tableHeaderFontSize) || 8,
       fontStyle: "bold",
-      halign: "left"
+      halign: "left",
     },
     bodyStyles: {
-      fontSize: 7.5,
+      fontSize: Number(layout.tableFontSize) || 7.5,
       textColor: [30, 35, 45],
-      cellPadding: 2
+      cellPadding: Number(layout.tableCellPadding) || 2,
     },
-    columnStyles: {
-      0: { cellWidth: 8, halign: "center" },
-      1: { cellWidth: 18 },
-      2: { cellWidth: 42 },
-      3: { cellWidth: 50 },
-      4: { cellWidth: 32 },
-      5: { cellWidth: 18 },
-      6: { cellWidth: 20, halign: "right", fontStyle: "bold" },
-    },
+    columnStyles: columnStyles,
     alternateRowStyles: {
-      fillColor: [248, 250, 253]
+      fillColor: altRowColor,
     },
-    margin: { left: 14, right: 14 },
+    margin: { left: margin, right: margin },
     didDrawPage: (data) => {
-      // Footer
-      const totalPages = doc.internal.getNumberOfPages();
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(130, 140, 155);
-      doc.text(
-        `Page ${data.pageNumber} of ${totalPages} • Confidential Client Disbursement Record`,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 8,
-        { align: "center" }
-      );
-    }
+      if (layout.showFooter !== false) {
+        const totalPages = doc.internal.getNumberOfPages();
+        doc.setFontSize(Number(layout.footerFontSize) || 7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(130, 140, 155);
+        const footerNotice = layout.footerText || "Confidential Client Disbursement Record • Attorney-Client Privileged";
+        doc.text(
+          `Page ${data.pageNumber} of ${totalPages} • ${footerNotice}`,
+          pageWidth / 2,
+          pageHeight - 7,
+          { align: "center" }
+        );
+      }
+    },
   });
 
-  let finalY = doc.lastAutoTable.finalY + 8;
+  let finalY = doc.lastAutoTable.finalY + 7;
 
-  // Check page overflow for signature block
-  if (finalY > doc.internal.pageSize.getHeight() - 40) {
+  // 6. Legal Disclaimer & Signatures block
+  if (finalY > pageHeight - 45) {
     doc.addPage();
-    finalY = 20;
+    finalY = margin + 5;
   }
 
-  // Legal Disclaimer
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(6.8);
-  doc.setTextColor(110, 120, 135);
-  const disclaimerText = settings.reportDisclaimer || "Certified that the above expenditures were strictly incurred in the discharge of professional legal services.";
-  const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 28);
-  doc.text(splitDisclaimer, 14, finalY);
+  if (layout.showDisclaimer !== false) {
+    doc.setFont("helvetica", layout.disclaimerItalic !== false ? "italic" : "normal");
+    doc.setFontSize(Number(layout.disclaimerFontSize) || 6.8);
+    doc.setTextColor(100, 110, 125);
+    const disclaimerText = settings.reportDisclaimer || "Certified that the above expenditures were strictly incurred in the discharge of professional legal services.";
+    const splitDisclaimer = doc.splitTextToSize(disclaimerText, contentWidth);
+    doc.text(splitDisclaimer, margin, finalY);
+    finalY += splitDisclaimer.length * 3.8 + 6;
+  }
 
-  finalY += splitDisclaimer.length * 4 + 8;
+  // 7. Signature Blocks (Optional)
+  if (layout.showSignatures !== false) {
+    const sigCount = Number(layout.signatureCount) === 2 ? 2 : 3;
+    const signer1 = layout.signer1Label || settings.signaturePreparedBy || "Prepared by Staff Associate";
+    const signer2 = layout.signer2Label || settings.signatureVerifiedBy || "Verified by Accounts Admin (Boss)";
+    const signer3 = layout.signer3Label || settings.signatureApprovedBy || "Approved by Managing Partner";
 
-  // Signatures
-  doc.setDrawColor(180, 190, 205);
-  doc.line(14, finalY + 12, 60, finalY + 12);
-  doc.line(pageWidth / 2 - 23, finalY + 12, pageWidth / 2 + 23, finalY + 12);
-  doc.line(pageWidth - 60, finalY + 12, pageWidth - 14, finalY + 12);
+    doc.setDrawColor(180, 190, 205);
+    doc.setLineWidth(0.6);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(60, 70, 85);
-  doc.text("Prepared By (Staff)", 14, finalY + 16);
-  doc.text("Verified by Accounts Admin", pageWidth / 2, finalY + 16, { align: "center" });
-  doc.text("Approved by Managing Partner", pageWidth - 14, finalY + 16, { align: "right" });
+    if (sigCount === 2) {
+      const sig1X = margin;
+      const sig2X = pageWidth - margin - 50;
+
+      doc.line(sig1X, finalY + 10, sig1X + 50, finalY + 10);
+      doc.line(sig2X, finalY + 10, sig2X + 50, finalY + 10);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(55, 65, 80);
+      doc.text(signer1, sig1X, finalY + 14);
+      doc.text(signer2, sig2X, finalY + 14);
+
+      if (layout.showSignatureDates !== false) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 130, 145);
+        doc.text("Date: ____________", sig1X, finalY + 18);
+        doc.text("Date: ____________", sig2X, finalY + 18);
+      }
+    } else {
+      const sigWidth = 46;
+      const sig1X = margin;
+      const sig2X = (pageWidth / 2) - (sigWidth / 2);
+      const sig3X = pageWidth - margin - sigWidth;
+
+      doc.line(sig1X, finalY + 10, sig1X + sigWidth, finalY + 10);
+      doc.line(sig2X, finalY + 10, sig2X + sigWidth, finalY + 10);
+      doc.line(sig3X, finalY + 10, sig3X + sigWidth, finalY + 10);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.2);
+      doc.setTextColor(55, 65, 80);
+      doc.text(signer1, sig1X, finalY + 14);
+      doc.text(signer2, sig2X, finalY + 14);
+      doc.text(signer3, sig3X, finalY + 14);
+
+      if (layout.showSignatureDates !== false) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 130, 145);
+        doc.text("Date: ____________", sig1X, finalY + 18);
+        doc.text("Date: ____________", sig2X, finalY + 18);
+        doc.text("Date: ____________", sig3X, finalY + 18);
+      }
+    }
+  }
+
+  if (returnDoc) {
+    return doc;
+  }
 
   const dateStr = new Date().toISOString().split("T")[0];
   doc.save(`${fileName}_${dateStr}.pdf`);
+  return doc;
+};
+
+// ==================== GENERATE SAMPLE PDF ====================
+export const generateSamplePDF = (settings) => {
+  const sampleExpenses = [
+    {
+      id: "EXP-89012",
+      date: new Date().toISOString().split("T")[0],
+      caseTitle: "Union of India v. ABC Infrastructure",
+      name: "Supreme Court Special Leave Petition Paper Book Certified Copies",
+      category: "Court & Filing Fees",
+      categoryType: "legal",
+      paymentMode: "firm_advance",
+      staffName: "Adv. Arjun Mehra",
+      amount: 45000,
+    },
+    {
+      id: "EXP-89013",
+      date: new Date().toISOString().split("T")[0],
+      caseTitle: "State Bank v. Zenith Global",
+      name: "Senior Advocate Consultation Briefing Conference",
+      category: "Counsel & Senior Briefing",
+      categoryType: "legal",
+      paymentMode: "bank_transfer",
+      staffName: "Adv. Priya Sharma",
+      amount: 125000,
+    },
+    {
+      id: "EXP-89014",
+      date: new Date().toISOString().split("T")[0],
+      caseTitle: "Tech Mahindra v. Innovatech",
+      name: "Encrypted Cloud Server Digital Evidence Recovery & Forensic Report",
+      category: "Digital Forensics & Discovery",
+      categoryType: "technical",
+      paymentMode: "online",
+      staffName: "Karan Patel (Forensic Lead)",
+      amount: 85000,
+    },
+    {
+      id: "EXP-89015",
+      date: new Date().toISOString().split("T")[0],
+      caseTitle: "General Office",
+      name: "Arbitration Tribunal Hearing Transcripts & Court Stenographer Fee",
+      category: "Stenography & Transcription",
+      categoryType: "administrative",
+      paymentMode: "cash",
+      staffName: "Adv. Arjun Mehra",
+      amount: 18500,
+    },
+  ];
+
+  const sampleAdvances = [
+    { id: "ADV-01", staffName: "Adv. Arjun Mehra", amount: 60000, usedAmount: 45000 },
+  ];
+
+  return exportExpensesToPDF({
+    expenses: sampleExpenses,
+    advances: sampleAdvances,
+    settings: settings,
+    filterSummary: {
+      caseName: "All Pre-Approved Firm Matters",
+      staffName: "All Active Associates",
+      startDate: "2026-01-01",
+      endDate: "2026-12-31",
+      categoryType: "Legal & Technical",
+    },
+    fileName: "lawfirm_pdf_layout_sample",
+  });
 };

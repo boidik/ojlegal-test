@@ -194,13 +194,46 @@ export default function LoginPage() {
                   size="small"
                   required
                   sx={{
-                    mb: 2,
+                    mb: 2.2,
                     "& .MuiOutlinedInput-root": {
-                      color: "#fff",
-                      "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-                      "&:hover fieldset": { borderColor: "#c99738" },
+                      backgroundColor: "#081526",
+                      borderRadius: 2,
+                      "& fieldset": {
+                        borderColor: "rgba(255, 255, 255, 0.28)",
+                        borderWidth: "1.5px",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#f59e0b",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#f59e0b",
+                        borderWidth: "2px",
+                      },
                     },
-                    "& .MuiInputLabel-root": { color: "#94a3b8" },
+                    "& input": {
+                      color: "#ffffff !important",
+                      fontSize: "0.95rem",
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                      py: 1.3,
+                    },
+                    "& input::placeholder": {
+                      color: "rgba(255, 255, 255, 0.45) !important",
+                      opacity: 1,
+                    },
+                    "& input:-webkit-autofill": {
+                      WebkitBoxShadow: "0 0 0 100px #081526 inset !important",
+                      WebkitTextFillColor: "#ffffff !important",
+                      caretColor: "#ffffff !important",
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: "#e2e8f0 !important",
+                      fontWeight: 700,
+                      fontSize: "0.88rem",
+                    },
+                    "& .MuiInputLabel-root.Mui-focused": {
+                      color: "#f59e0b !important",
+                    },
                   }}
                 />
               )}
@@ -215,13 +248,46 @@ export default function LoginPage() {
                 size="small"
                 required
                 sx={{
-                  mb: 2,
+                  mb: 2.2,
                   "& .MuiOutlinedInput-root": {
-                    color: "#fff",
-                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-                    "&:hover fieldset": { borderColor: "#c99738" },
+                    backgroundColor: "#081526",
+                    borderRadius: 2,
+                    "& fieldset": {
+                      borderColor: "rgba(255, 255, 255, 0.28)",
+                      borderWidth: "1.5px",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#f59e0b",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#f59e0b",
+                      borderWidth: "2px",
+                    },
                   },
-                  "& .MuiInputLabel-root": { color: "#94a3b8" },
+                  "& input": {
+                    color: "#ffffff !important",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    letterSpacing: "0.02em",
+                    py: 1.3,
+                  },
+                  "& input::placeholder": {
+                    color: "rgba(255, 255, 255, 0.45) !important",
+                    opacity: 1,
+                  },
+                  "& input:-webkit-autofill": {
+                    WebkitBoxShadow: "0 0 0 100px #081526 inset !important",
+                    WebkitTextFillColor: "#ffffff !important",
+                    caretColor: "#ffffff !important",
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#e2e8f0 !important",
+                    fontWeight: 700,
+                    fontSize: "0.88rem",
+                  },
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    color: "#f59e0b !important",
+                  },
                 }}
               />
 
@@ -234,13 +300,46 @@ export default function LoginPage() {
                 size="small"
                 required
                 sx={{
-                  mb: 2,
+                  mb: 2.2,
                   "& .MuiOutlinedInput-root": {
-                    color: "#fff",
-                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-                    "&:hover fieldset": { borderColor: "#c99738" },
+                    backgroundColor: "#081526",
+                    borderRadius: 2,
+                    "& fieldset": {
+                      borderColor: "rgba(255, 255, 255, 0.28)",
+                      borderWidth: "1.5px",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#f59e0b",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#f59e0b",
+                      borderWidth: "2px",
+                    },
                   },
-                  "& .MuiInputLabel-root": { color: "#94a3b8" },
+                  "& input": {
+                    color: "#ffffff !important",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    letterSpacing: "0.02em",
+                    py: 1.3,
+                  },
+                  "& input::placeholder": {
+                    color: "rgba(255, 255, 255, 0.45) !important",
+                    opacity: 1,
+                  },
+                  "& input:-webkit-autofill": {
+                    WebkitBoxShadow: "0 0 0 100px #081526 inset !important",
+                    WebkitTextFillColor: "#ffffff !important",
+                    caretColor: "#ffffff !important",
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#e2e8f0 !important",
+                    fontWeight: 700,
+                    fontSize: "0.88rem",
+                  },
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    color: "#f59e0b !important",
+                  },
                 }}
               />
 

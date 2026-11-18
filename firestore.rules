@@ -40,10 +40,10 @@ service cloud.firestore {
       allow write: if isSoftwareAdmin();
     }
 
-    // Cases registry: Read by all authenticated users; modified by Software Admin
+    // Cases registry: Read by all authenticated users; modified by Software Admin & Accounts Admin
     match /cases/{caseId} {
       allow read: if isAuthenticated();
-      allow write: if isSoftwareAdmin();
+      allow write: if isAccountsAdmin();
     }
 
     // Expense Categories: Read by all authenticated users; modified by Software Admin
@@ -52,10 +52,10 @@ service cloud.firestore {
       allow write: if isSoftwareAdmin();
     }
 
-    // Court Forums: Read by all authenticated users; modified by Software Admin
+    // Court Forums: Read by all authenticated users; modified by Software Admin & Accounts Admin
     match /forums/{forumId} {
       allow read: if isAuthenticated();
-      allow write: if isSoftwareAdmin();
+      allow write: if isAccountsAdmin();
     }
 
     // Expenses:
@@ -69,10 +69,10 @@ service cloud.firestore {
     }
 
     // Advances:
+    // - Authenticated users can read advances (staff views their allocated float)
     // - Accounts Admin / Boss can disburse and settle advances
-    // - Staff can read their own advances
     match /advances/{advanceId} {
-      allow read: if isAuthenticated() && (isAccountsAdmin() || resource.data.staffId == request.auth.uid);
+      allow read: if isAuthenticated();
       allow write: if isAccountsAdmin();
     }
 

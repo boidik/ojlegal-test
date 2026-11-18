@@ -315,8 +315,14 @@ export const getAdvances = async (staffId = null) => {
   let list = [];
   if (isFirebaseConfigured() && db) {
     try {
-      const q = query(collection(db, "advances"), orderBy("disbursedDate", "desc"));
-      const snapshot = await getDocs(q);
+      let snapshot;
+      try {
+        const q = query(collection(db, "advances"), orderBy("disbursedDate", "desc"));
+        snapshot = await getDocs(q);
+      } catch (err) {
+        // Fallback without sorting if composite index or field is missing
+        snapshot = await getDocs(collection(db, "advances"));
+      }
       list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
       console.warn("Remote getAdvances failed:", e);
@@ -327,7 +333,7 @@ export const getAdvances = async (staffId = null) => {
   }
 
   if (staffId && staffId !== "ALL") {
-    list = list.filter(a => a.staffId === staffId);
+    list = list.filter(a => a.staffId === staffId || a.staffEmail === staffId);
   }
 
   return list;

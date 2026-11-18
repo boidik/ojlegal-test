@@ -40,6 +40,11 @@ import ClearIcon from "@mui/icons-material/Clear";
 import StatCard from "../components/StatCard";
 import ExpenseDialog from "../components/ExpenseDialog";
 import AdvanceDialog from "../components/AdvanceDialog";
+import CaseDialog from "../components/CaseDialog";
+import ForumDialog from "../components/ForumDialog";
+import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { exportExpensesToExcel, exportExpensesToPDF } from "../services/exportService";
@@ -51,16 +56,27 @@ export default function AccountsAdminPage() {
     advances,
     cases,
     categories,
+    forums,
     users,
     settings,
     deleteExpense,
     deleteAdvance,
     updateAdvance,
+    deleteCase,
+    deleteForum,
+    seedStandardForums,
   } = useApp();
 
   const currency = settings.currencySymbol || "₹";
 
-  const [activeTab, setActiveTab] = useState(0); // 0 = Expenses, 1 = Advances
+  // Delegation checks from Software Admin settings
+  const canManageCases = settings.allowAccountsAdminCases !== false;
+  const canManageForums = settings.allowAccountsAdminForums !== false;
+
+  const caseTabIndex = canManageCases ? 2 : -1;
+  const forumTabIndex = canManageForums ? (canManageCases ? 3 : 2) : -1;
+
+  const [activeTab, setActiveTab] = useState(0); // 0 = Expenses, 1 = Advances, 2 = Cases (delegated), 3 = Forums (delegated)
   const [selectedCase, setSelectedCase] = useState("ALL");
   const [selectedStaff, setSelectedStaff] = useState("ALL");
   const [selectedCategoryType, setSelectedCategoryType] = useState("ALL");
@@ -70,8 +86,12 @@ export default function AccountsAdminPage() {
 
   const [openExpenseModal, setOpenExpenseModal] = useState(false);
   const [openAdvanceModal, setOpenAdvanceModal] = useState(false);
+  const [openCaseModal, setOpenCaseModal] = useState(false);
+  const [openForumModal, setOpenForumModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [selectedAdvance, setSelectedAdvance] = useState(null);
+  const [caseToEdit, setCaseToEdit] = useState(null);
+  const [forumToEdit, setForumToEdit] = useState(null);
 
   // Filter expenses based on current controls
   const filteredExpenses = expenses.filter((e) => {
@@ -203,6 +223,36 @@ export default function AccountsAdminPage() {
           >
             Disburse Advance
           </Button>
+
+          {canManageCases && (
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<FolderSpecialIcon />}
+              onClick={() => {
+                setCaseToEdit(null);
+                setOpenCaseModal(true);
+              }}
+              sx={{ fontWeight: 800, flex: { xs: "1 1 calc(50% - 6px)", sm: "1 1 auto" }, py: 1 }}
+            >
+              + Case
+            </Button>
+          )}
+
+          {canManageForums && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<AccountBalanceIcon />}
+              onClick={() => {
+                setForumToEdit(null);
+                setOpenForumModal(true);
+              }}
+              sx={{ fontWeight: 800, flex: { xs: "1 1 calc(50% - 6px)", sm: "1 1 auto" }, py: 1 }}
+            >
+              + Court
+            </Button>
+          )}
 
           <Button
             variant="contained"
@@ -468,7 +518,7 @@ export default function AccountsAdminPage() {
         </CardContent>
       </Card>
 
-      {/* Tabs: Itemized Expenses vs Advances Float */}
+      {/* Tabs: Itemized Expenses vs Advances Float vs Delegated Registries */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
         <Tabs
           value={activeTab}
@@ -488,6 +538,20 @@ export default function AccountsAdminPage() {
         >
           <Tab label={`Itemized Audit Ledger (${filteredExpenses.length})`} />
           <Tab label={`Staff Advances & Float (${filteredAdvances.length})`} />
+          {canManageCases && (
+            <Tab
+              icon={<FolderSpecialIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={`Case Registry (${cases.length})`}
+            />
+          )}
+          {canManageForums && (
+            <Tab
+              icon={<AccountBalanceIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={`Courts & Forums (${forums.length})`}
+            />
+          )}
         </Tabs>
       </Box>
 
@@ -857,6 +921,303 @@ export default function AccountsAdminPage() {
         </Card>
       )}
 
+      {/* TAB 2 (Delegated): Case Registry */}
+      {canManageCases && activeTab === caseTabIndex && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
+          <Box
+            sx={{
+              p: { xs: 2, sm: 2.5 },
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 2,
+              borderBottom: "1px solid #e2e8f0",
+              backgroundColor: "#f8fafc",
+            }}
+          >
+            <Box>
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
+                Law Firm Case Registry (Delegated Access)
+              </Typography>
+              <Typography variant="body2" color="#64748b">
+                Authorized by Managing Partner to register and maintain active litigation & arbitration matters.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setCaseToEdit(null);
+                setOpenCaseModal(true);
+              }}
+              sx={{ backgroundColor: "#0f2942", fontWeight: 800 }}
+            >
+              Add New Case
+            </Button>
+          </Box>
+
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", md: "none" },
+              color: "text.secondary",
+              px: 2,
+              pt: 1.5,
+              pb: 0.5,
+              textAlign: "right",
+              fontWeight: 600,
+              fontSize: "0.72rem",
+            }}
+          >
+            Scroll horizontally to see all columns →
+          </Typography>
+
+          <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Table sx={{ minWidth: { xs: 700, sm: 800 } }} size="medium">
+              <TableHead sx={{ backgroundColor: "#f1f5f9" }}>
+                <TableRow>
+                  <TableCell>Case ID / Number</TableCell>
+                  <TableCell>Title & Client</TableCell>
+                  <TableCell>Court / Tribunal</TableCell>
+                  <TableCell>Practice Area</TableCell>
+                  <TableCell align="center">Status</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {cases.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No cases registered in the firm registry yet.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  cases.map((c) => (
+                    <TableRow key={c.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={700}>
+                          {c.caseNumber}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Ref: {c.id}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {c.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Client: {c.clientName || "Corporate / Private"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{c.courtForum || "N/A"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={c.practiceArea || "Litigation"}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontSize: "0.72rem", fontWeight: 600 }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={c.status ? c.status.toUpperCase() : "ACTIVE"}
+                          size="small"
+                          color={c.status === "closed" ? "default" : "success"}
+                          sx={{ fontSize: "0.7rem", fontWeight: 700 }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => {
+                            setCaseToEdit(c);
+                            setOpenCaseModal(true);
+                          }}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                          onClick={async () => {
+                            if (window.confirm(`Archive or delete case "${c.caseNumber}"?`)) {
+                              await deleteCase(c.id);
+                            }
+                          }}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      )}
+
+      {/* TAB 3 (Delegated): Courts & Forums */}
+      {canManageForums && activeTab === forumTabIndex && (
+        <Card sx={{ border: "1px solid #cbd5e1" }}>
+          <Box
+            sx={{
+              p: { xs: 2, sm: 2.5 },
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 2,
+              borderBottom: "1px solid #e2e8f0",
+              backgroundColor: "#f8fafc",
+            }}
+          >
+            <Box>
+              <Typography variant="h6" fontWeight={800} color="#0f172a">
+                Courts, Tribunals & Forums Registry (Delegated Access)
+              </Typography>
+              <Typography variant="body2" color="#64748b">
+                Authorized by Managing Partner to register High Courts, NCLT, DRT, and Consumer Forums.
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={async () => {
+                  if (window.confirm("Seed 16+ standard High Courts, Tribunals & Judicial Forums?")) {
+                    await seedStandardForums();
+                  }
+                }}
+                sx={{ fontWeight: 800 }}
+              >
+                Seed Standard Courts
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setForumToEdit(null);
+                  setOpenForumModal(true);
+                }}
+                sx={{ backgroundColor: "#0f2942", fontWeight: 800 }}
+              >
+                Add Forum
+              </Button>
+            </Box>
+          </Box>
+
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", md: "none" },
+              color: "text.secondary",
+              px: 2,
+              pt: 1.5,
+              pb: 0.5,
+              textAlign: "right",
+              fontWeight: 600,
+              fontSize: "0.72rem",
+            }}
+          >
+            Scroll horizontally to see all columns →
+          </Typography>
+
+          <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Table sx={{ minWidth: { xs: 650, sm: 750 } }} size="medium">
+              <TableHead sx={{ backgroundColor: "#f1f5f9" }}>
+                <TableRow>
+                  <TableCell>Court / Forum Name</TableCell>
+                  <TableCell>Short Code</TableCell>
+                  <TableCell>Forum Type</TableCell>
+                  <TableCell>Jurisdiction / City</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {forums.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No courts or judicial forums registered yet. Click <strong>Seed Standard Courts</strong> or <strong>Add Forum</strong>.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  forums.map((f) => (
+                    <TableRow key={f.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={700}>
+                          {f.name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={f.shortCode || "GEN"}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ fontSize: "0.72rem", fontWeight: 700 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {f.type || "Judicial Tribunal"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{f.location || "National / Multi-Bench"}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => {
+                            setForumToEdit(f);
+                            setOpenForumModal(true);
+                          }}
+                          sx={{ mr: 1, py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                          onClick={async () => {
+                            if (window.confirm(`Delete forum "${f.name}"?`)) {
+                              await deleteForum(f.id);
+                            }
+                          }}
+                          sx={{ py: 0.4, px: 1.2, fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      )}
+
       {/* Expense Modal */}
       <ExpenseDialog
         open={openExpenseModal}
@@ -869,6 +1230,20 @@ export default function AccountsAdminPage() {
         open={openAdvanceModal}
         onClose={() => setOpenAdvanceModal(false)}
         advanceToEdit={selectedAdvance}
+      />
+
+      {/* Delegated Case Modal */}
+      <CaseDialog
+        open={openCaseModal}
+        onClose={() => setOpenCaseModal(false)}
+        caseToEdit={caseToEdit}
+      />
+
+      {/* Delegated Forum Modal */}
+      <ForumDialog
+        open={openForumModal}
+        onClose={() => setOpenForumModal(false)}
+        forumToEdit={forumToEdit}
       />
     </Box>
   );

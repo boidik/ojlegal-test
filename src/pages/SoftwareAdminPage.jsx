@@ -32,6 +32,9 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
+  Switch,
+  Slider,
+  Checkbox,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -51,6 +54,11 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PaletteIcon from "@mui/icons-material/Palette";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import LayersIcon from "@mui/icons-material/Layers";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import CaseDialog from "../components/CaseDialog";
 import CategoryDialog from "../components/CategoryDialog";
 import ForumDialog from "../components/ForumDialog";
@@ -59,6 +67,7 @@ import RoleBadge from "../components/RoleBadge";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { PRESET_FAVICONS } from "../services/sampleData";
+import { DEFAULT_PDF_LAYOUT, generateSamplePDF } from "../services/exportService";
 import {
   getActiveFirebaseConfig,
   saveCustomFirebaseConfig,
@@ -143,7 +152,15 @@ export default function SoftwareAdminPage() {
     signaturePreparedBy: settings.signaturePreparedBy || "Prepared by Staff Associate",
     signatureVerifiedBy: settings.signatureVerifiedBy || "Verified by Accounts Admin (Boss)",
     signatureApprovedBy: settings.signatureApprovedBy || "Approved by Managing Partner",
+    allowAccountsAdminCases: settings.allowAccountsAdminCases !== false,
+    allowAccountsAdminForums: settings.allowAccountsAdminForums !== false,
   });
+
+  // PDF Report Studio Form State
+  const [pdfForm, setPdfForm] = useState(() => ({
+    ...DEFAULT_PDF_LAYOUT,
+    ...(settings.pdfLayout || {}),
+  }));
 
   // Branding & UI Form State
   const [brandForm, setBrandForm] = useState({
@@ -175,6 +192,8 @@ export default function SoftwareAdminPage() {
         signaturePreparedBy: settings.signaturePreparedBy || prev.signaturePreparedBy,
         signatureVerifiedBy: settings.signatureVerifiedBy || prev.signatureVerifiedBy,
         signatureApprovedBy: settings.signatureApprovedBy || prev.signatureApprovedBy,
+        allowAccountsAdminCases: settings.allowAccountsAdminCases !== false,
+        allowAccountsAdminForums: settings.allowAccountsAdminForums !== false,
       }));
 
       setBrandForm((prev) => ({
@@ -188,6 +207,13 @@ export default function SoftwareAdminPage() {
         faviconType: settings.faviconType || prev.faviconType,
         customFaviconUrl: settings.customFaviconUrl || prev.customFaviconUrl,
       }));
+
+      if (settings.pdfLayout) {
+        setPdfForm((prev) => ({
+          ...DEFAULT_PDF_LAYOUT,
+          ...settings.pdfLayout,
+        }));
+      }
     }
   }, [settings]);
 
@@ -219,6 +245,25 @@ export default function SoftwareAdminPage() {
     e.preventDefault();
     await saveSettings(brandForm);
     showNotification("Branding, UI & Favicon settings saved successfully!", "success");
+  };
+
+  const handleSavePdfLayout = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    await saveSettings({ pdfLayout: pdfForm });
+    showNotification("Custom PDF Report Layout saved! All client statements and audit ledgers will now use this exact pixel geometry.", "success");
+  };
+
+  const handleResetPdfLayout = () => {
+    setPdfForm({ ...DEFAULT_PDF_LAYOUT });
+    showNotification("Reset PDF layout controls to default system standards.", "info");
+  };
+
+  const handleDownloadSamplePDF = () => {
+    generateSamplePDF({
+      ...settings,
+      pdfLayout: pdfForm,
+    });
+    showNotification("Generated live sample PDF based on current layout controls!", "success");
   };
 
   // 1-Click Role Change Handler (NO PASSWORDS REQUIRED)
@@ -456,6 +501,21 @@ export default function SoftwareAdminPage() {
             }}
           />
           <Tab
+            icon={<PictureAsPdfIcon />}
+            iconPosition="start"
+            label="PDF Report Studio"
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 6 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 6 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
             icon={<CloudQueueIcon />}
             iconPosition="start"
             label="Firebase Connection"
@@ -466,8 +526,8 @@ export default function SoftwareAdminPage() {
               mx: 0.4,
               py: 1,
               px: 2,
-              color: activeTab === 6 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 6 ? "#0f2942" : "transparent",
+              color: activeTab === 7 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 7 ? "#0f2942" : "transparent",
             }}
           />
           <Tab
@@ -481,8 +541,8 @@ export default function SoftwareAdminPage() {
               mx: 0.4,
               py: 1,
               px: 2,
-              color: activeTab === 7 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 7 ? "#0f2942" : "transparent",
+              color: activeTab === 8 ? "#ffffff !important" : "#334155 !important",
+              backgroundColor: activeTab === 8 ? "#0f2942" : "transparent",
             }}
           />
           <Tab
@@ -496,8 +556,8 @@ export default function SoftwareAdminPage() {
               mx: 0.4,
               py: 1,
               px: 2,
-              color: activeTab === 8 ? "#ffffff !important" : "#dc2626 !important",
-              backgroundColor: activeTab === 8 ? "#dc2626" : "transparent",
+              color: activeTab === 9 ? "#ffffff !important" : "#dc2626 !important",
+              backgroundColor: activeTab === 9 ? "#dc2626" : "transparent",
             }}
           />
         </Tabs>
@@ -1081,6 +1141,99 @@ export default function SoftwareAdminPage() {
                   />
                 </Grid>
 
+                {/* Boss Delegation & Authority Permissions */}
+                <Grid item xs={12}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 2,
+                      backgroundColor: "#f8fafc",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                      <AdminPanelSettingsIcon color="primary" />
+                      <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                        Boss Delegation & Operational Authority (Accounts Admin Permissions)
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="#64748b" sx={{ mb: 2 }}>
+                      Empower Accounts Admins (Office Manager / Chief of Accounts) to register new litigation matters and courts directly when the Managing Partner is engaged in court hearings or unavailable.
+                    </Typography>
+
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 1.5,
+                            backgroundColor: firmForm.allowAccountsAdminCases ? "#f0fdf4" : "#ffffff",
+                          }}
+                        >
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={firmForm.allowAccountsAdminCases !== false}
+                                onChange={(e) =>
+                                  setFirmForm({ ...firmForm, allowAccountsAdminCases: e.target.checked })
+                                }
+                                color="success"
+                              />
+                            }
+                            label={
+                              <Box>
+                                <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+                                  Delegate Case Registry Entry
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Allow Accounts Admin to add, edit & archive Case Matters
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                        </Paper>
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 1.5,
+                            backgroundColor: firmForm.allowAccountsAdminForums ? "#f0fdf4" : "#ffffff",
+                          }}
+                        >
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={firmForm.allowAccountsAdminForums !== false}
+                                onChange={(e) =>
+                                  setFirmForm({ ...firmForm, allowAccountsAdminForums: e.target.checked })
+                                }
+                                color="success"
+                              />
+                            }
+                            label={
+                              <Box>
+                                <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+                                  Delegate Courts & Forums Entry
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Allow Accounts Admin to register Courts, Tribunals & Forums
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+
                 <Grid item xs={12}>
                   <Button
                     type="submit"
@@ -1495,7 +1648,7 @@ export default function SoftwareAdminPage() {
               color="error"
               size="small"
               startIcon={<DeleteForeverIcon />}
-              onClick={() => setActiveTab(8)}
+              onClick={() => setActiveTab(9)}
               sx={{ fontWeight: 800, borderColor: "#dc2626" }}
             >
               Open Danger Zone (Delete All Data)
@@ -1504,8 +1657,952 @@ export default function SoftwareAdminPage() {
         </Card>
       )}
 
-      {/* ==================== TAB 6: FIREBASE CONFIGURATION ==================== */}
+      {/* ==================== TAB 6: PDF REPORT STUDIO & ENGINE ==================== */}
       {activeTab === 6 && (
+        <Box>
+          {/* Header Action Bar */}
+          <Card sx={{ mb: 3, border: "1px solid #cbd5e1", borderRadius: 2 }}>
+            <Box
+              sx={{
+                p: { xs: 2, sm: 3 },
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", md: "center" },
+                gap: 2,
+                backgroundColor: "#f8fafc",
+                borderBottom: "1px solid #e2e8f0",
+              }}
+            >
+              <Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <PictureAsPdfIcon sx={{ color: "#0f2942", fontSize: 28 }} />
+                  <Typography variant="h6" fontWeight={800} color="#0f172a">
+                    PDF Report Studio & Pixel Layout Engine
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="#64748b" sx={{ mt: 0.5 }}>
+                  Fine-tune every margin, color hex, column toggle, table font size, and signatory block for generated audit statements.
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", md: "auto" } }}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<RestartAltIcon />}
+                  onClick={handleResetPdfLayout}
+                  sx={{ fontWeight: 700, flex: { xs: "1 1 auto", sm: "none" } }}
+                >
+                  Reset Defaults
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<FileDownloadIcon />}
+                  onClick={handleDownloadSamplePDF}
+                  sx={{
+                    fontWeight: 800,
+                    backgroundColor: "#c99738",
+                    color: "#0f172a",
+                    "&:hover": { backgroundColor: "#b3852e" },
+                    flex: { xs: "1 1 auto", sm: "none" },
+                  }}
+                >
+                  Download Live Sample PDF
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                  onClick={handleSavePdfLayout}
+                  sx={{
+                    fontWeight: 800,
+                    backgroundColor: "#0f2942",
+                    flex: { xs: "1 1 auto", sm: "none" },
+                  }}
+                >
+                  Save PDF Layout
+                </Button>
+              </Box>
+            </Box>
+          </Card>
+
+          <Grid container spacing={3}>
+            {/* LEFT COLUMN: Controls Studio */}
+            <Grid item xs={12} lg={7}>
+              {/* SECTION 1: Page Geometry & Paper Dimensions */}
+              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                    <LayersIcon color="primary" />
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                      1. Page Geometry & Paper Format
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Page Orientation"
+                        value={pdfForm.orientation}
+                        onChange={(e) => setPdfForm({ ...pdfForm, orientation: e.target.value })}
+                      >
+                        <MenuItem value="portrait">📄 Portrait (Vertical Standard)</MenuItem>
+                        <MenuItem value="landscape">📑 Landscape (Wide Horizontal Ledger)</MenuItem>
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Paper Standard Format"
+                        value={pdfForm.format}
+                        onChange={(e) => setPdfForm({ ...pdfForm, format: e.target.value })}
+                      >
+                        <MenuItem value="a4">A4 (210 × 297 mm - Indian Courts Standard)</MenuItem>
+                        <MenuItem value="letter">US Letter (8.5 × 11 in)</MenuItem>
+                        <MenuItem value="legal">US Legal (8.5 × 14 in - Extended Pleadings)</MenuItem>
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="body2" fontWeight={700} color="#334155" gutterBottom>
+                        Printable Page Margin: {pdfForm.marginMm} mm
+                      </Typography>
+                      <Slider
+                        value={Number(pdfForm.marginMm) || 14}
+                        min={8}
+                        max={28}
+                        step={1}
+                        onChange={(e, val) => setPdfForm({ ...pdfForm, marginMm: val })}
+                        valueLabelDisplay="auto"
+                        marks={[
+                          { value: 8, label: "8mm (Dense)" },
+                          { value: 14, label: "14mm (Standard)" },
+                          { value: 24, label: "24mm (Spacious)" },
+                        ]}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="body2" fontWeight={700} color="#334155" gutterBottom>
+                        Header Banner Height: {pdfForm.bannerHeight} mm
+                      </Typography>
+                      <Slider
+                        value={Number(pdfForm.bannerHeight) || 28}
+                        min={18}
+                        max={45}
+                        step={1}
+                        onChange={(e, val) => setPdfForm({ ...pdfForm, bannerHeight: val })}
+                        valueLabelDisplay="auto"
+                        marks={[
+                          { value: 20, label: "20mm" },
+                          { value: 28, label: "28mm (Default)" },
+                          { value: 40, label: "40mm" },
+                        ]}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 2: Visual Identity & Color Theme */}
+              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                    <PaletteIcon color="primary" />
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                      2. Visual Identity & Color Palette
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Header Banner Style"
+                        value={pdfForm.bannerStyle}
+                        onChange={(e) => setPdfForm({ ...pdfForm, bannerStyle: e.target.value })}
+                      >
+                        <MenuItem value="full_banner">Solid Color Full Width Banner</MenuItem>
+                        <MenuItem value="boxed">Boxed Letterhead Container</MenuItem>
+                        <MenuItem value="double_rule">Classic Double Gold Rule</MenuItem>
+                        <MenuItem value="minimal">Minimalist Clean Line</MenuItem>
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" fontWeight={700} color="#475569" sx={{ display: "block", mb: 0.5 }}>
+                        Primary Theme Color: {pdfForm.primaryColor}
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <input
+                          type="color"
+                          value={pdfForm.primaryColor || "#0f2942"}
+                          onChange={(e) => setPdfForm({ ...pdfForm, primaryColor: e.target.value })}
+                          style={{ width: 44, height: 36, border: "1px solid #cbd5e1", borderRadius: 4, cursor: "pointer" }}
+                        />
+                        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                          {COLOR_PRESETS.map((c) => (
+                            <Box
+                              key={c.hex}
+                              onClick={() => setPdfForm({ ...pdfForm, primaryColor: c.hex })}
+                              sx={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 1,
+                                backgroundColor: c.hex,
+                                cursor: "pointer",
+                                border: pdfForm.primaryColor === c.hex ? "2px solid #000" : "1px solid #cbd5e1",
+                              }}
+                              title={c.name}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" fontWeight={700} color="#475569" sx={{ display: "block", mb: 0.5 }}>
+                        Accent Highlight Color: {pdfForm.accentColor}
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <input
+                          type="color"
+                          value={pdfForm.accentColor || "#c99738"}
+                          onChange={(e) => setPdfForm({ ...pdfForm, accentColor: e.target.value })}
+                          style={{ width: 44, height: 36, border: "1px solid #cbd5e1", borderRadius: 4, cursor: "pointer" }}
+                        />
+                        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                          {["#c99738", "#f59e0b", "#10b981", "#2563eb", "#ef4444", "#8b5cf6"].map((hex) => (
+                            <Box
+                              key={hex}
+                              onClick={() => setPdfForm({ ...pdfForm, accentColor: hex })}
+                              sx={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 1,
+                                backgroundColor: hex,
+                                cursor: "pointer",
+                                border: pdfForm.accentColor === hex ? "2px solid #000" : "1px solid #cbd5e1",
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" fontWeight={700} color="#475569" sx={{ display: "block", mb: 0.5 }}>
+                        Alternate Table Row Shading: {pdfForm.alternateRowColor}
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <input
+                          type="color"
+                          value={pdfForm.alternateRowColor || "#f8fafc"}
+                          onChange={(e) => setPdfForm({ ...pdfForm, alternateRowColor: e.target.value })}
+                          style={{ width: 44, height: 36, border: "1px solid #cbd5e1", borderRadius: 4, cursor: "pointer" }}
+                        />
+                        <Box sx={{ display: "flex", gap: 0.5 }}>
+                          {["#f8fafc", "#f1f5f9", "#fefce8", "#ffffff"].map((hex) => (
+                            <Box
+                              key={hex}
+                              onClick={() => setPdfForm({ ...pdfForm, alternateRowColor: hex })}
+                              sx={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 1,
+                                backgroundColor: hex,
+                                cursor: "pointer",
+                                border: pdfForm.alternateRowColor === hex ? "2px solid #000" : "1px solid #cbd5e1",
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 3: Titles, Headers & Summary Cards */}
+              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                    <VisibilityIcon color="primary" />
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                      3. Document Header Titles & Visibility Toggles
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={12} sm={8}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Top Header Title (Leave blank to use Law Firm Name)"
+                        value={pdfForm.headerTitle}
+                        onChange={(e) => setPdfForm({ ...pdfForm, headerTitle: e.target.value })}
+                        placeholder={settings.firmName || "OJ Legal Advocates & Solicitors"}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" fontWeight={700} color="#334155">
+                        Header Font Size: {pdfForm.headerTitleFontSize} pt
+                      </Typography>
+                      <Slider
+                        value={Number(pdfForm.headerTitleFontSize) || 13}
+                        min={10}
+                        max={20}
+                        step={0.5}
+                        onChange={(e, val) => setPdfForm({ ...pdfForm, headerTitleFontSize: val })}
+                        valueLabelDisplay="auto"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={8}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Statement Title"
+                        value={pdfForm.statementTitle}
+                        onChange={(e) => setPdfForm({ ...pdfForm, statementTitle: e.target.value })}
+                        placeholder="ITEMIZED EXPENDITURE & DISBURSEMENT STATEMENT"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" fontWeight={700} color="#334155">
+                        Statement Font Size: {pdfForm.statementTitleFontSize} pt
+                      </Typography>
+                      <Slider
+                        value={Number(pdfForm.statementTitleFontSize) || 11}
+                        min={9}
+                        max={16}
+                        step={0.5}
+                        onChange={(e, val) => setPdfForm({ ...pdfForm, statementTitleFontSize: val })}
+                        valueLabelDisplay="auto"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showAddress !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showAddress: e.target.checked })}
+                          />
+                        }
+                        label="Print Law Firm Address & Chambers"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showDateStatus !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showDateStatus: e.target.checked })}
+                          />
+                        }
+                        label="Print Generation Date & Audit Status"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showFilterBox !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showFilterBox: e.target.checked })}
+                          />
+                        }
+                        label="Print Report Scope & Filter Box"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showKpiCards !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showKpiCards: e.target.checked })}
+                          />
+                        }
+                        label="Print Executive Financial KPI Cards"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 4: Table Styling & Individual Column Visibility */}
+              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                    <ReceiptLongIcon color="primary" />
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                      4. Table Geometry & Column Visibility (Dot-by-Dot Control)
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Table Theme Style"
+                        value={pdfForm.tableTheme}
+                        onChange={(e) => setPdfForm({ ...pdfForm, tableTheme: e.target.value })}
+                      >
+                        <MenuItem value="striped">Striped Rows</MenuItem>
+                        <MenuItem value="grid">Complete Grid Lines</MenuItem>
+                        <MenuItem value="plain">Minimal Plain Lines</MenuItem>
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" fontWeight={700} color="#334155">
+                        Table Font Size: {pdfForm.tableFontSize} pt
+                      </Typography>
+                      <Slider
+                        value={Number(pdfForm.tableFontSize) || 7.5}
+                        min={6}
+                        max={11}
+                        step={0.5}
+                        onChange={(e, val) => setPdfForm({ ...pdfForm, tableFontSize: val })}
+                        valueLabelDisplay="auto"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" fontWeight={700} color="#334155">
+                        Cell Padding: {pdfForm.tableCellPadding} mm
+                      </Typography>
+                      <Slider
+                        value={Number(pdfForm.tableCellPadding) || 2}
+                        min={1}
+                        max={5}
+                        step={0.5}
+                        onChange={(e, val) => setPdfForm({ ...pdfForm, tableCellPadding: val })}
+                        valueLabelDisplay="auto"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" fontWeight={800} color="#0f172a" sx={{ mb: 1 }}>
+                        Table Columns to Print:
+                      </Typography>
+                      <Paper elevation={0} sx={{ p: 2, border: "1px solid #e2e8f0", borderRadius: 1.5, backgroundColor: "#f8fafc" }}>
+                        <Grid container spacing={1}>
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnIndex !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnIndex: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}># Index</Typography>}
+                            />
+                          </Grid>
+
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnDate !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnDate: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}>Date</Typography>}
+                            />
+                          </Grid>
+
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnCase !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnCase: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}>Case / Matter</Typography>}
+                            />
+                          </Grid>
+
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnDescription !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnDescription: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}>Description</Typography>}
+                            />
+                          </Grid>
+
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnCategory !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnCategory: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}>Category</Typography>}
+                            />
+                          </Grid>
+
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnPaymentMode !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnPaymentMode: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}>Payment Mode</Typography>}
+                            />
+                          </Grid>
+
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnStaffName !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnStaffName: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}>Associate Name</Typography>}
+                            />
+                          </Grid>
+
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={pdfForm.showColumnAmount !== false}
+                                  onChange={(e) => setPdfForm({ ...pdfForm, showColumnAmount: e.target.checked })}
+                                  size="small"
+                                />
+                              }
+                              label={<Typography variant="body2" fontWeight={600}>Voucher Amount</Typography>}
+                            />
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 5: Legal Disclaimer, Signatures & Footer */}
+              <Card sx={{ border: "1px solid #cbd5e1" }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                    <AdminPanelSettingsIcon color="primary" />
+                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                      5. Legal Disclaimer, Signatory Blocks & Footer
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={12} sm={4}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showDisclaimer !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showDisclaimer: e.target.checked })}
+                          />
+                        }
+                        label="Print Legal Disclaimer"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.disclaimerItalic !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, disclaimerItalic: e.target.checked })}
+                          />
+                        }
+                        label="Italicized Disclaimer"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" fontWeight={700} color="#334155">
+                        Disclaimer Size: {pdfForm.disclaimerFontSize} pt
+                      </Typography>
+                      <Slider
+                        value={Number(pdfForm.disclaimerFontSize) || 6.8}
+                        min={5}
+                        max={9}
+                        step={0.2}
+                        onChange={(e, val) => setPdfForm({ ...pdfForm, disclaimerFontSize: val })}
+                        valueLabelDisplay="auto"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showSignatures !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showSignatures: e.target.checked })}
+                          />
+                        }
+                        label="Print Signatory Blocks"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Number of Signatories"
+                        value={pdfForm.signatureCount || 3}
+                        onChange={(e) => setPdfForm({ ...pdfForm, signatureCount: Number(e.target.value) })}
+                      >
+                        <MenuItem value={2}>2 Signers (Prepared By & Approved By)</MenuItem>
+                        <MenuItem value={3}>3 Signers (Prepared, Verified & Approved)</MenuItem>
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Signer 1 Designation"
+                        value={pdfForm.signer1Label}
+                        onChange={(e) => setPdfForm({ ...pdfForm, signer1Label: e.target.value })}
+                        placeholder={settings.signaturePreparedBy || "Prepared by Staff Associate"}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Signer 2 Designation"
+                        value={pdfForm.signer2Label}
+                        onChange={(e) => setPdfForm({ ...pdfForm, signer2Label: e.target.value })}
+                        placeholder={settings.signatureVerifiedBy || "Verified by Accounts Admin"}
+                      />
+                    </Grid>
+
+                    {pdfForm.signatureCount === 3 && (
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Signer 3 Designation"
+                          value={pdfForm.signer3Label}
+                          onChange={(e) => setPdfForm({ ...pdfForm, signer3Label: e.target.value })}
+                          placeholder={settings.signatureApprovedBy || "Approved by Managing Partner"}
+                        />
+                      </Grid>
+                    )}
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showSignatureDates !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showSignatureDates: e.target.checked })}
+                          />
+                        }
+                        label="Include Signature Date Lines"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={pdfForm.showFooter !== false}
+                            onChange={(e) => setPdfForm({ ...pdfForm, showFooter: e.target.checked })}
+                          />
+                        }
+                        label="Print Page Footers & Numbering"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Footer Notice Text"
+                        value={pdfForm.footerText}
+                        onChange={(e) => setPdfForm({ ...pdfForm, footerText: e.target.value })}
+                        placeholder="Confidential Client Disbursement Record • Attorney-Client Privileged"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* RIGHT COLUMN: Live Interactive Visual Sheet Preview */}
+            <Grid item xs={12} lg={5}>
+              <Box sx={{ position: { lg: "sticky" }, top: 24 }}>
+                <Card sx={{ border: "2px solid #cbd5e1", borderRadius: 2, overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
+                  <Box sx={{ p: 2, bgcolor: "#0f2942", color: "#ffffff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <VisibilityIcon sx={{ fontSize: 18, color: "#c99738" }} />
+                      <Typography variant="subtitle2" fontWeight={800}>
+                        Live Sheet Preview (Simulated {pdfForm.format?.toUpperCase()} / {pdfForm.orientation})
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={`${pdfForm.marginMm}mm Margins`}
+                      size="small"
+                      sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "#ffffff", fontSize: "0.7rem", fontWeight: 700 }}
+                    />
+                  </Box>
+
+                  {/* Simulated PDF Paper Canvas */}
+                  <Box
+                    sx={{
+                      p: `${Math.max(10, Math.min(28, pdfForm.marginMm))}px`,
+                      bgcolor: "#ffffff",
+                      minHeight: 520,
+                      fontSize: "0.75rem",
+                      boxShadow: "inset 0 0 10px rgba(0,0,0,0.04)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Simulated Header Banner */}
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: pdfForm.bannerStyle === "boxed" ? 1.5 : 0,
+                        border: pdfForm.bannerStyle === "boxed" ? `1.5px solid ${pdfForm.primaryColor || "#0f2942"}` : "none",
+                        borderBottom: pdfForm.bannerStyle === "minimal" ? `2px solid ${pdfForm.primaryColor || "#0f2942"}` : pdfForm.bannerStyle === "double_rule" ? `3px double ${pdfForm.accentColor || "#c99738"}` : `2px solid ${pdfForm.accentColor || "#c99738"}`,
+                        backgroundColor: pdfForm.bannerStyle === "full_banner" ? (pdfForm.primaryColor || "#0f2942") : "transparent",
+                        color: pdfForm.bannerStyle === "full_banner" ? "#ffffff" : (pdfForm.primaryColor || "#0f2942"),
+                        mb: 2,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: `${(Number(pdfForm.headerTitleFontSize) || 13) * 0.9}px`,
+                          fontWeight: 800,
+                          letterSpacing: "0.03em",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {(pdfForm.headerTitle || settings.firmName || "OJ LEGAL ADVOCATES & SOLICITORS").toUpperCase()}
+                      </Typography>
+
+                      <Typography sx={{ fontSize: "0.68rem", opacity: 0.85, mt: 0.3 }}>
+                        {settings.tagline || "Advocates & Legal Consultants • Litigation Advisory"}
+                      </Typography>
+
+                      {pdfForm.showAddress !== false && (
+                        <Typography sx={{ fontSize: "0.62rem", opacity: 0.75, mt: 0.2 }}>
+                          {settings.firmAddress || "High Court Chamber Complex, Legal Enclave"}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {/* Statement Title */}
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                      <Typography
+                        sx={{
+                          fontSize: `${(Number(pdfForm.statementTitleFontSize) || 11) * 0.9}px`,
+                          fontWeight: 800,
+                          color: pdfForm.primaryColor || "#0f2942",
+                        }}
+                      >
+                        {pdfForm.statementTitle || "ITEMIZED EXPENDITURE & DISBURSEMENT STATEMENT"}
+                      </Typography>
+
+                      {pdfForm.showDateStatus !== false && (
+                        <Typography sx={{ fontSize: "0.62rem", color: "#64748b", fontWeight: 600 }}>
+                          {new Date().toISOString().split("T")[0]} • AUDITED
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {/* Simulated Filter Scope Box */}
+                    {pdfForm.showFilterBox !== false && (
+                      <Box sx={{ p: 1, bgcolor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 1, mb: 1.5 }}>
+                        <Typography sx={{ fontSize: "0.62rem", color: "#475569" }}>
+                          <strong>Case:</strong> All Active Matters | <strong>Staff:</strong> All Associates | <strong>Range:</strong> FY 2026-27
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Simulated Executive KPI Summary Cards */}
+                    {pdfForm.showKpiCards !== false && (
+                      <Grid container spacing={1} sx={{ mb: 1.5 }}>
+                        <Grid item xs={3}>
+                          <Box sx={{ p: 0.8, bgcolor: "#f1f5f9", borderRadius: 1, textAlign: "center", border: "1px solid #e2e8f0" }}>
+                            <Typography sx={{ fontSize: "0.55rem", color: "#64748b", fontWeight: 700 }}>TOTAL</Typography>
+                            <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, color: pdfForm.primaryColor || "#0f2942" }}>₹2,73,500</Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={3}>
+                          <Box sx={{ p: 0.8, bgcolor: "#eff6ff", borderRadius: 1, textAlign: "center", border: "1px solid #bfdbfe" }}>
+                            <Typography sx={{ fontSize: "0.55rem", color: "#1d4ed8", fontWeight: 700 }}>LEGAL</Typography>
+                            <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, color: "#1e40af" }}>₹1,70,000</Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={3}>
+                          <Box sx={{ p: 0.8, bgcolor: "#faf5ff", borderRadius: 1, textAlign: "center", border: "1px solid #e9d5ff" }}>
+                            <Typography sx={{ fontSize: "0.55rem", color: "#7e22ce", fontWeight: 700 }}>TECH</Typography>
+                            <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, color: "#6b21a8" }}>₹85,000</Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={3}>
+                          <Box sx={{ p: 0.8, bgcolor: "#f0fdf4", borderRadius: 1, textAlign: "center", border: "1px solid #bbf7d0" }}>
+                            <Typography sx={{ fontSize: "0.55rem", color: "#15803d", fontWeight: 700 }}>FLOAT</Typography>
+                            <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, color: "#166534" }}>₹15,000</Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    )}
+
+                    {/* Simulated Table */}
+                    <Box sx={{ border: "1px solid #cbd5e1", borderRadius: 1, overflow: "hidden", mb: 2 }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: pdfForm.primaryColor || "#0f2942" }}>
+                          <TableRow>
+                            {pdfForm.showColumnIndex !== false && <TableCell sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>#</TableCell>}
+                            {pdfForm.showColumnDate !== false && <TableCell sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>Date</TableCell>}
+                            {pdfForm.showColumnCase !== false && <TableCell sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>Matter</TableCell>}
+                            {pdfForm.showColumnDescription !== false && <TableCell sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>Description</TableCell>}
+                            {pdfForm.showColumnCategory !== false && <TableCell sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>Category</TableCell>}
+                            {pdfForm.showColumnPaymentMode !== false && <TableCell sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>Mode</TableCell>}
+                            {pdfForm.showColumnStaffName !== false && <TableCell sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>Staff</TableCell>}
+                            {pdfForm.showColumnAmount !== false && <TableCell align="right" sx={{ color: "#ffffff", fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, fontWeight: 800, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>Amount</TableCell>}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {[
+                            { idx: 1, date: "2026-04-10", matter: "Tata Motors v. CCI", desc: "Senior Counsel Consultation Fee", cat: "Counsel Briefing", mode: "Advance", staff: "Adv. Arjun", amt: "₹1,25,000" },
+                            { idx: 2, date: "2026-04-11", matter: "Tech Mahindra v. Innovatech", desc: "Forensic Hard Drive Clone", cat: "Digital Forensics", mode: "Bank", staff: "Karan Patel", amt: "₹85,000" },
+                            { idx: 3, date: "2026-04-12", matter: "State Bank v. Zenith", desc: "NCLT Filing Stamp & Paperbook", cat: "Court Registry", mode: "Cash", staff: "Adv. Priya", amt: "₹45,000" },
+                          ].map((row, i) => (
+                            <TableRow
+                              key={row.idx}
+                              sx={{
+                                bgcolor: i % 2 === 1 && pdfForm.tableTheme === "striped" ? (pdfForm.alternateRowColor || "#f8fafc") : "#ffffff",
+                                "& td": {
+                                  borderBottom: pdfForm.tableTheme === "grid" ? "1px solid #cbd5e1" : "1px solid #f1f5f9",
+                                  borderRight: pdfForm.tableTheme === "grid" ? "1px solid #cbd5e1" : "none",
+                                },
+                              }}
+                            >
+                              {pdfForm.showColumnIndex !== false && <TableCell sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px`, fontWeight: 700 }}>{row.idx}</TableCell>}
+                              {pdfForm.showColumnDate !== false && <TableCell sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>{row.date}</TableCell>}
+                              {pdfForm.showColumnCase !== false && <TableCell sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px`, fontWeight: 600 }}>{row.matter}</TableCell>}
+                              {pdfForm.showColumnDescription !== false && <TableCell sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>{row.desc}</TableCell>}
+                              {pdfForm.showColumnCategory !== false && <TableCell sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>{row.cat}</TableCell>}
+                              {pdfForm.showColumnPaymentMode !== false && <TableCell sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>{row.mode}</TableCell>}
+                              {pdfForm.showColumnStaffName !== false && <TableCell sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px` }}>{row.staff}</TableCell>}
+                              {pdfForm.showColumnAmount !== false && <TableCell align="right" sx={{ fontSize: `${(Number(pdfForm.tableFontSize) || 7.5) * 0.9}px`, p: `${pdfForm.tableCellPadding || 2}px 4px`, fontWeight: 800 }}>{row.amt}</TableCell>}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Box>
+
+                    {/* Simulated Disclaimer */}
+                    {pdfForm.showDisclaimer !== false && (
+                      <Box sx={{ p: 1, bgcolor: "#f8fafc", borderLeft: `3px solid ${pdfForm.accentColor || "#c99738"}`, mb: 2 }}>
+                        <Typography
+                          sx={{
+                            fontSize: `${(Number(pdfForm.disclaimerFontSize) || 6.8) * 0.85}px`,
+                            color: "#475569",
+                            fontStyle: pdfForm.disclaimerItalic !== false ? "italic" : "normal",
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          This financial statement is prepared strictly for internal billing verification and client disbursement reimbursement under Bar Council regulations.
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Simulated Signatory Blocks */}
+                    {pdfForm.showSignatures !== false && (
+                      <Box sx={{ pt: 2, display: "flex", justifyContent: "space-between", gap: 1, borderTop: "1px dashed #cbd5e1" }}>
+                        <Box sx={{ textAlign: "center", flex: 1 }}>
+                          <Box sx={{ width: "80%", height: 1, bgcolor: "#475569", mx: "auto", mb: 0.5 }} />
+                          <Typography sx={{ fontSize: "0.58rem", fontWeight: 700, color: "#1e293b" }}>
+                            {pdfForm.signer1Label || settings.signaturePreparedBy || "Prepared by Staff"}
+                          </Typography>
+                          {pdfForm.showSignatureDates !== false && (
+                            <Typography sx={{ fontSize: "0.52rem", color: "#94a3b8" }}>Date: _________</Typography>
+                          )}
+                        </Box>
+
+                        <Box sx={{ textAlign: "center", flex: 1 }}>
+                          <Box sx={{ width: "80%", height: 1, bgcolor: "#475569", mx: "auto", mb: 0.5 }} />
+                          <Typography sx={{ fontSize: "0.58rem", fontWeight: 700, color: "#1e293b" }}>
+                            {pdfForm.signer2Label || settings.signatureVerifiedBy || "Verified by Accounts"}
+                          </Typography>
+                          {pdfForm.showSignatureDates !== false && (
+                            <Typography sx={{ fontSize: "0.52rem", color: "#94a3b8" }}>Date: _________</Typography>
+                          )}
+                        </Box>
+
+                        {pdfForm.signatureCount === 3 && (
+                          <Box sx={{ textAlign: "center", flex: 1 }}>
+                            <Box sx={{ width: "80%", height: 1, bgcolor: "#475569", mx: "auto", mb: 0.5 }} />
+                            <Typography sx={{ fontSize: "0.58rem", fontWeight: 700, color: "#1e293b" }}>
+                              {pdfForm.signer3Label || settings.signatureApprovedBy || "Approved by Partner"}
+                            </Typography>
+                            {pdfForm.showSignatureDates !== false && (
+                              <Typography sx={{ fontSize: "0.52rem", color: "#94a3b8" }}>Date: _________</Typography>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+
+                    {/* Simulated Footer */}
+                    {pdfForm.showFooter !== false && (
+                      <Box sx={{ mt: 2, pt: 1, borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Typography sx={{ fontSize: "0.55rem", color: "#94a3b8" }}>
+                          {pdfForm.footerText || "Confidential Client Disbursement Record • Attorney-Client Privileged"}
+                        </Typography>
+                        <Typography sx={{ fontSize: "0.55rem", color: "#94a3b8" }}>
+                          Page 1 of 1
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Card>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {/* ==================== TAB 7: FIREBASE CONFIGURATION ==================== */}
+      {activeTab === 7 && (
         <Card sx={{ border: "1px solid #cbd5e1" }}>
           <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
             <Box sx={{ mb: 3 }}>
@@ -1647,16 +2744,16 @@ service cloud.firestore {
       return isAuthenticated() && (isSoftwareAdmin() || getUserRole() == 'accounts_admin');
     }
     match /system/{document=**} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
-    match /cases/{caseId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /cases/{caseId} { allow read: if isAuthenticated(); allow write: if isAccountsAdmin(); }
     match /categories/{catId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
-    match /forums/{forumId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /forums/{forumId} { allow read: if isAuthenticated(); allow write: if isAccountsAdmin(); }
     match /expenses/{expenseId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update, delete: if isAccountsAdmin() || (isAuthenticated() && resource.data.staffId == request.auth.uid);
     }
     match /advances/{advanceId} {
-      allow read: if isAuthenticated() && (isAccountsAdmin() || resource.data.staffId == request.auth.uid);
+      allow read: if isAuthenticated();
       allow write: if isAccountsAdmin();
     }
     match /users/{userId} {
@@ -1705,15 +2802,15 @@ service cloud.firestore {
       return isAuthenticated() && (isSoftwareAdmin() || getUserRole() == 'accounts_admin');
     }
     match /system/{document=**} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
-    match /cases/{caseId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /cases/{caseId} { allow read: if isAuthenticated(); allow write: if isAccountsAdmin(); }
     match /categories/{catId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
-    match /forums/{forumId} { allow read: if isAuthenticated(); allow write: if isSoftwareAdmin(); }
+    match /forums/{forumId} { allow read: if isAuthenticated(); allow write: if isAccountsAdmin(); }
     match /expenses/{expenseId} {
       allow read: if isAuthenticated(); allow create: if isAuthenticated();
       allow update, delete: if isAccountsAdmin() || (isAuthenticated() && resource.data.staffId == request.auth.uid);
     }
     match /advances/{advanceId} {
-      allow read: if isAuthenticated() && (isAccountsAdmin() || resource.data.staffId == request.auth.uid);
+      allow read: if isAuthenticated();
       allow write: if isAccountsAdmin();
     }
     match /users/{userId} {
@@ -1730,8 +2827,8 @@ service cloud.firestore {
         </Card>
       )}
 
-      {/* ==================== TAB 7: MASTER VOUCHER EDITOR ==================== */}
-      {activeTab === 7 && (
+      {/* ==================== TAB 8: MASTER VOUCHER EDITOR ==================== */}
+      {activeTab === 8 && (
         <Card sx={{ border: "1px solid #cbd5e1" }}>
           <Box sx={{ p: 2.5 }}>
             <Typography variant="h6" fontWeight={800} color="#0f172a">
@@ -1841,8 +2938,8 @@ service cloud.firestore {
         </Card>
       )}
 
-      {/* ==================== TAB 8: SYSTEM RESET & DANGER ZONE ==================== */}
-      {activeTab === 8 && (
+      {/* ==================== TAB 9: SYSTEM RESET & DANGER ZONE ==================== */}
+      {activeTab === 9 && (
         <Card sx={{ border: "2px solid #ef4444", borderRadius: 3, overflow: "hidden" }}>
           <Box sx={{ bgcolor: "#fef2f2", p: { xs: 2, sm: 3 }, borderBottom: "1px solid #fecaca" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
