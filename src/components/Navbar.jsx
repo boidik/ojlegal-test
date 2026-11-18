@@ -22,7 +22,6 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import LogoutIcon from "@mui/icons-material/Logout";
-import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import RoleBadge from "./RoleBadge";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
@@ -39,14 +38,14 @@ export default function Navbar({ activeTab, setActiveTab }) {
   const handleCloseUserMenu = () => setAnchorElUser(null);
 
   // Render configured icon or logo image
-  const renderNavbarIcon = () => {
+  const renderNavbarIcon = (size = 38) => {
     if (settings.customLogoUrl) {
       return (
         <Box
           component="img"
           src={settings.customLogoUrl}
           alt={settings.firmName || "Firm Logo"}
-          sx={{ maxHeight: 38, maxWidth: 44, objectFit: "contain", borderRadius: 1.5 }}
+          sx={{ maxHeight: size, maxWidth: size + 6, objectFit: "contain", borderRadius: 1.5 }}
         />
       );
     }
@@ -60,8 +59,8 @@ export default function Navbar({ activeTab, setActiveTab }) {
     return (
       <Box
         sx={{
-          width: 40,
-          height: 40,
+          width: size,
+          height: size,
           borderRadius: 2,
           backgroundColor: settings.headerAccentColor || "#c99738",
           display: "flex",
@@ -69,9 +68,10 @@ export default function Navbar({ activeTab, setActiveTab }) {
           justifyContent: "center",
           color: "#ffffff",
           boxShadow: `0 2px 8px ${settings.headerAccentColor || "#c99738"}60`,
+          flexShrink: 0,
         }}
       >
-        <IconComponent sx={{ fontSize: 22 }} />
+        <IconComponent sx={{ fontSize: size * 0.55 }} />
       </Box>
     );
   };
@@ -80,6 +80,31 @@ export default function Navbar({ activeTab, setActiveTab }) {
     ? (settings.headerBgColor || "#0f2942") 
     : "#0c1726";
   const headerText = settings.headerTextColor || "#ffffff";
+
+  // Tab definitions
+  const tabsList = [];
+  if (isSoftwareAdmin) {
+    tabsList.push({
+      id: "software_admin",
+      label: "Software Admin",
+      mobileLabel: "Admin",
+      icon: <SettingsIcon sx={{ fontSize: { xs: 18, md: 20 } }} />,
+    });
+  }
+  if (isAccountsAdmin || isSoftwareAdmin) {
+    tabsList.push({
+      id: "accounts_admin",
+      label: "Accounts Admin (Boss)",
+      mobileLabel: "Boss",
+      icon: <AssessmentIcon sx={{ fontSize: { xs: 18, md: 20 } }} />,
+    });
+  }
+  tabsList.push({
+    id: "staff",
+    label: "Staff Expenses",
+    mobileLabel: "Staff",
+    icon: <AccountBalanceWalletIcon sx={{ fontSize: { xs: 18, md: 20 } }} />,
+  });
 
   return (
     <>
@@ -90,111 +115,98 @@ export default function Navbar({ activeTab, setActiveTab }) {
           backgroundColor: headerBg,
           color: headerText,
           borderBottom: "1px solid",
-          borderColor: "rgba(255,255,255,0.1)",
+          borderColor: "rgba(255,255,255,0.12)",
           transition: "background-color 0.3s ease",
+          zIndex: 1100,
         }}
       >
-        <Toolbar sx={{ justifyContent: "space-between", py: 0.8, flexWrap: "wrap", gap: 1 }}>
+        <Toolbar
+          sx={{
+            justifyContent: "space-between",
+            px: { xs: 1.5, sm: 2.5 },
+            py: { xs: 0.8, md: 1 },
+            minHeight: { xs: 58, md: 64 },
+          }}
+        >
           {/* Brand & Law Firm Name */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            {renderNavbarIcon()}
-            <Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, minWidth: 0 }}>
+            {renderNavbarIcon(36)}
+            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
               <Typography
                 variant="subtitle1"
+                noWrap
                 sx={{
                   fontWeight: 800,
                   letterSpacing: "-0.01em",
                   color: headerText,
                   lineHeight: 1.2,
+                  fontSize: { xs: "0.92rem", sm: "1.05rem" },
                   fontFamily: '"Plus Jakarta Sans", sans-serif',
                 }}
               >
                 {settings.navbarTitle || settings.firmName || "OJ Legal Advocates"}
               </Typography>
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", display: "block", fontSize: "0.72rem" }}>
+              <Typography
+                variant="caption"
+                noWrap
+                sx={{
+                  color: "rgba(255,255,255,0.7)",
+                  display: { xs: "none", sm: "block" },
+                  fontSize: "0.72rem",
+                  lineHeight: 1.2,
+                }}
+              >
                 {settings.tagline || "Expense Disbursement & Staff Float Management"}
               </Typography>
             </Box>
           </Box>
 
-          {/* Navigation Tabs - High Contrast, Sharp Role-Based Tabs */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
-            {/* Software Admin Console (First priority for Software Admin) */}
-            {isSoftwareAdmin && (
-              <Button
-                startIcon={<SettingsIcon />}
-                onClick={() => setActiveTab("software_admin")}
-                sx={{
-                  color: activeTab === "software_admin" ? "#0f2942" : "#ffffff",
-                  backgroundColor: activeTab === "software_admin" ? "#ffffff" : "rgba(255,255,255,0.12)",
-                  border: activeTab === "software_admin" ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
-                  borderRadius: 2,
-                  px: 2.2,
-                  py: 0.8,
-                  fontWeight: 800,
-                  fontSize: "0.85rem",
-                  boxShadow: activeTab === "software_admin" ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
-                  "&:hover": {
-                    backgroundColor: activeTab === "software_admin" ? "#f8fafc" : "rgba(255,255,255,0.24)",
-                  },
-                }}
-              >
-                Software Admin
-              </Button>
-            )}
-
-            {/* Accounts Admin (Boss) - Visible to Boss and Software Admin */}
-            {(isAccountsAdmin || isSoftwareAdmin) && (
-              <Button
-                startIcon={<AssessmentIcon />}
-                onClick={() => setActiveTab("accounts_admin")}
-                sx={{
-                  color: activeTab === "accounts_admin" ? "#0f2942" : "#ffffff",
-                  backgroundColor: activeTab === "accounts_admin" ? "#ffffff" : "rgba(255,255,255,0.12)",
-                  border: activeTab === "accounts_admin" ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
-                  borderRadius: 2,
-                  px: 2.2,
-                  py: 0.8,
-                  fontWeight: 800,
-                  fontSize: "0.85rem",
-                  boxShadow: activeTab === "accounts_admin" ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
-                  "&:hover": {
-                    backgroundColor: activeTab === "accounts_admin" ? "#f8fafc" : "rgba(255,255,255,0.24)",
-                  },
-                }}
-              >
-                Accounts Admin (Boss)
-              </Button>
-            )}
-
-            {/* Staff Expenses - Available to all */}
-            <Button
-              startIcon={<AccountBalanceWalletIcon />}
-              onClick={() => setActiveTab("staff")}
-              sx={{
-                color: activeTab === "staff" ? "#0f2942" : "#ffffff",
-                backgroundColor: activeTab === "staff" ? "#ffffff" : "rgba(255,255,255,0.12)",
-                border: activeTab === "staff" ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
-                borderRadius: 2,
-                px: 2.2,
-                py: 0.8,
-                fontWeight: 800,
-                fontSize: "0.85rem",
-                boxShadow: activeTab === "staff" ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
-                "&:hover": {
-                  backgroundColor: activeTab === "staff" ? "#f8fafc" : "rgba(255,255,255,0.24)",
-                },
-              }}
-            >
-              Staff Expenses
-            </Button>
+          {/* Desktop Navigation Tabs (Hidden on mobile/tablet down to 'md') */}
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              alignItems: "center",
+              gap: 1.2,
+            }}
+          >
+            {tabsList.map((t) => {
+              const isActive = activeTab === t.id;
+              return (
+                <Button
+                  key={t.id}
+                  startIcon={t.icon}
+                  onClick={() => setActiveTab(t.id)}
+                  sx={{
+                    color: isActive ? "#0f2942" : "#ffffff",
+                    backgroundColor: isActive ? "#ffffff" : "rgba(255,255,255,0.12)",
+                    border: isActive ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
+                    borderRadius: 2,
+                    px: 2,
+                    py: 0.8,
+                    fontWeight: 800,
+                    fontSize: "0.85rem",
+                    boxShadow: isActive ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
+                    whiteSpace: "nowrap",
+                    "&:hover": {
+                      backgroundColor: isActive ? "#f8fafc" : "rgba(255,255,255,0.24)",
+                    },
+                  }}
+                >
+                  {t.label}
+                </Button>
+              );
+            })}
           </Box>
 
-          {/* Right Action Items: Profile & Sign Out */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            {/* Light/Dark Toggle */}
-            <IconButton onClick={toggleColorMode} sx={{ color: "rgba(255,255,255,0.85)" }}>
-              {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
+          {/* Right Action Items: Theme Toggle & Profile Avatar */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1.5 }, flexShrink: 0 }}>
+            <IconButton
+              onClick={toggleColorMode}
+              size="small"
+              sx={{ color: "rgba(255,255,255,0.9)", p: 0.8 }}
+              title="Toggle theme mode"
+            >
+              {mode === "dark" ? <Brightness7Icon fontSize="small" /> : <Brightness4Icon fontSize="small" />}
             </IconButton>
 
             {/* User Profile */}
@@ -212,18 +224,18 @@ export default function Navbar({ activeTab, setActiveTab }) {
             >
               <Avatar
                 sx={{
-                  width: 34,
-                  height: 34,
+                  width: { xs: 32, sm: 36 },
+                  height: { xs: 32, sm: 36 },
                   backgroundColor: settings.headerAccentColor || "#c99738",
-                  fontSize: "0.85rem",
-                  fontWeight: 700,
+                  fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                  fontWeight: 800,
                 }}
               >
                 {currentUser?.displayName ? currentUser.displayName[0].toUpperCase() : "U"}
               </Avatar>
-              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                <Typography variant="body2" sx={{ color: headerText, fontWeight: 600, lineHeight: 1.1 }}>
-                  {currentUser?.displayName || "User"}
+              <Box sx={{ display: { xs: "none", lg: "block" } }}>
+                <Typography variant="body2" sx={{ color: headerText, fontWeight: 700, lineHeight: 1.1 }}>
+                  {currentUser?.displayName || "Advocate"}
                 </Typography>
                 <RoleBadge role={currentUser?.role} size="small" />
               </Box>
@@ -237,25 +249,69 @@ export default function Navbar({ activeTab, setActiveTab }) {
               anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
             >
               <Box sx={{ px: 2, py: 1.5, minWidth: 220 }}>
-                <Typography variant="subtitle2" fontWeight={700}>
+                <Typography variant="subtitle2" fontWeight={800}>
                   {currentUser?.displayName}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                   {currentUser?.email}
                 </Typography>
-                <Box sx={{ mt: 0.8 }}>
-                  <RoleBadge role={currentUser?.role} />
-                </Box>
+                <RoleBadge role={currentUser?.role} />
               </Box>
               <Divider />
-
               <MenuItem onClick={() => { handleCloseUserMenu(); logout(); }}>
                 <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon>
-                <Typography color="error" fontWeight={600}>Sign Out</Typography>
+                <Typography color="error" fontWeight={700}>Sign Out</Typography>
               </MenuItem>
             </Menu>
           </Box>
         </Toolbar>
+
+        {/* Mobile/Tablet Sub-Navigation Bar: Sleek, Touch-Friendly, Full-Width Segmented Bar */}
+        <Box
+          sx={{
+            display: { xs: "flex", md: "none" },
+            px: 1,
+            pb: 1,
+            pt: 0.2,
+            gap: 1,
+            backgroundColor: "rgba(0,0,0,0.15)",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          {tabsList.map((t) => {
+            const isActive = activeTab === t.id;
+            return (
+              <Button
+                key={t.id}
+                fullWidth
+                startIcon={t.icon}
+                onClick={() => setActiveTab(t.id)}
+                size="small"
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  py: 0.7,
+                  px: 0.5,
+                  fontSize: { xs: "0.75rem", sm: "0.82rem" },
+                  fontWeight: 800,
+                  borderRadius: 2,
+                  whiteSpace: "nowrap",
+                  color: isActive ? "#0f2942" : "#ffffff",
+                  backgroundColor: isActive ? "#ffffff" : "rgba(255,255,255,0.12)",
+                  boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.25)" : "none",
+                  "& .MuiButton-startIcon": {
+                    mr: { xs: 0.5, sm: 0.8 },
+                  },
+                  "&:hover": {
+                    backgroundColor: isActive ? "#f8fafc" : "rgba(255,255,255,0.2)",
+                  },
+                }}
+              >
+                {t.mobileLabel}
+              </Button>
+            );
+          })}
+        </Box>
       </AppBar>
     </>
   );

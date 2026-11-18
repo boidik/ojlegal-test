@@ -71,9 +71,15 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      sx={{ "& .MuiDialog-paper": { m: { xs: 1.5, sm: 3 } } }}
+    >
       <form onSubmit={handleSubmit}>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1.5 }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1.5, px: { xs: 2, sm: 3 } }}>
           <Box
             sx={{
               width: 40,
@@ -84,12 +90,13 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              flexShrink: 0,
             }}
           >
             <AccountBalanceIcon sx={{ fontSize: 22 }} />
           </Box>
           <Box>
-            <Typography variant="h6" fontWeight={800} color="#0f172a">
+            <Typography variant="h6" fontWeight={800} color="#0f172a" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
               {forumToEdit ? "Edit Court / Forum" : "Register New Court / Forum"}
             </Typography>
             <Typography variant="caption" color="#475569">
@@ -99,7 +106,7 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
         </DialogTitle>
         <Divider />
 
-        <DialogContent sx={{ pt: 2.5 }}>
+        <DialogContent sx={{ pt: 2.5, px: { xs: 2, sm: 3 } }}>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           <Grid container spacing={2}>
@@ -173,8 +180,8 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
           </Grid>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2.5, borderTop: "1px solid #e2e8f0" }}>
-          <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600 }}>
+        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, borderTop: "1px solid #e2e8f0", flexDirection: { xs: "column-reverse", sm: "row" }, gap: 1 }}>
+          <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600, width: { xs: "100%", sm: "auto" } }}>
             Cancel
           </Button>
           <Button
@@ -186,6 +193,7 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
               px: 3,
               backgroundColor: "#0f2942",
               "&:hover": { backgroundColor: "#1e3a5f" },
+              width: { xs: "100%", sm: "auto" },
             }}
           >
             {submitting ? "Saving..." : forumToEdit ? "Save Changes" : "Register Forum"}

@@ -73,11 +73,17 @@ export default function FirebaseConfigDialog({ open, onClose }) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      sx={{ "& .MuiDialog-paper": { m: { xs: 1.5, sm: 3 } } }}
+    >
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1, px: { xs: 2, sm: 3 } }}>
         <CloudQueueIcon color="primary" />
         <Box>
-          <Typography variant="h6" fontWeight={700}>
+          <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
             Google Firebase & Firestore Setup
           </Typography>
           <Typography variant="caption" color="text.secondary">
@@ -86,7 +92,7 @@ export default function FirebaseConfigDialog({ open, onClose }) {
         </Box>
       </DialogTitle>
       <Divider />
-      <DialogContent sx={{ pt: 2.5 }}>
+      <DialogContent sx={{ pt: 2.5, px: { xs: 2, sm: 3 } }}>
         <Paper
           elevation={0}
           sx={{
@@ -175,19 +181,19 @@ export default function FirebaseConfigDialog({ open, onClose }) {
           </Alert>
         )}
       </DialogContent>
-      <DialogActions sx={{ p: 2.5, justifyContent: "space-between" }}>
+      <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, flexDirection: { xs: "column-reverse", sm: "row" }, gap: 1, justifyContent: "space-between" }}>
         {isFirebaseConfigured() ? (
-          <Button color="error" size="small" onClick={handleClear}>
+          <Button color="error" size="small" onClick={handleClear} sx={{ width: { xs: "100%", sm: "auto" } }}>
             Disconnect Firebase
           </Button>
         ) : (
           <Box />
         )}
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Button variant="outlined" onClick={handleTest} disabled={testing}>
+        <Box sx={{ display: "flex", gap: 1, width: { xs: "100%", sm: "auto" }, flexDirection: { xs: "column", sm: "row" } }}>
+          <Button variant="outlined" onClick={handleTest} disabled={testing} sx={{ width: { xs: "100%", sm: "auto" } }}>
             {testing ? <CircularProgress size={20} /> : "Test Connection"}
           </Button>
-          <Button variant="contained" onClick={handleSave} disabled={!config.apiKey || !config.projectId}>
+          <Button variant="contained" onClick={handleSave} disabled={!config.apiKey || !config.projectId} sx={{ width: { xs: "100%", sm: "auto" } }}>
             Save & Connect
           </Button>
         </Box>

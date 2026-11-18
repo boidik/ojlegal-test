@@ -77,12 +77,18 @@ export default function CaseDialog({ open, onClose, caseToEdit = null }) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      sx={{ "& .MuiDialog-paper": { m: { xs: 1.5, sm: 3 } } }}
+    >
       <form onSubmit={handleSubmit}>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1, px: { xs: 2, sm: 3 } }}>
           <FolderSpecialIcon color="primary" />
           <Box>
-            <Typography variant="h6" fontWeight={700}>
+            <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
               {caseToEdit ? "Modify Case Registry" : "Register Pre-Approved Case"}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -92,7 +98,7 @@ export default function CaseDialog({ open, onClose, caseToEdit = null }) {
         </DialogTitle>
         <Divider />
 
-        <DialogContent sx={{ pt: 2.5 }}>
+        <DialogContent sx={{ pt: 2.5, px: { xs: 2, sm: 3 } }}>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           <Grid container spacing={2}>
@@ -205,11 +211,11 @@ export default function CaseDialog({ open, onClose, caseToEdit = null }) {
           </Grid>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2.5 }}>
-          <Button onClick={onClose} color="inherit">
+        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, flexDirection: { xs: "column-reverse", sm: "row" }, gap: 1 }}>
+          <Button onClick={onClose} color="inherit" sx={{ width: { xs: "100%", sm: "auto" } }}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" disabled={submitting}>
+          <Button type="submit" variant="contained" disabled={submitting} sx={{ width: { xs: "100%", sm: "auto" }, fontWeight: 700 }}>
             {submitting ? "Saving..." : caseToEdit ? "Update Case" : "Register Case"}
           </Button>
         </DialogActions>

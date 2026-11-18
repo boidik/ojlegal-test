@@ -82,23 +82,28 @@ export default function StaffExpensePage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: "auto" }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 4 }, maxWidth: 1400, mx: "auto" }}>
       {/* Top Banner */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: { xs: "flex-start", sm: "center" },
+          alignItems: { xs: "stretch", sm: "center" },
           flexDirection: { xs: "column", sm: "row" },
           gap: 2,
-          mb: 4,
+          mb: { xs: 2.5, md: 4 },
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={800} color="text.primary">
+          <Typography
+            variant="h4"
+            fontWeight={800}
+            color="text.primary"
+            sx={{ fontSize: { xs: "1.45rem", sm: "1.85rem", md: "2.125rem" }, lineHeight: 1.2, mb: 0.5 }}
+          >
             Staff Expense Portal
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.82rem", sm: "0.875rem" } }}>
             Welcome, <strong>{currentUser?.displayName || "Advocate"}</strong>. Record case expenditures and monitor your authorized advance float.
           </Typography>
         </Box>
@@ -114,10 +119,12 @@ export default function StaffExpensePage() {
           sx={{
             py: 1.2,
             px: 3,
+            width: { xs: "100%", sm: "auto" },
             fontSize: "0.95rem",
-            fontWeight: 700,
+            fontWeight: 800,
             background: "linear-gradient(135deg, #0f2942 0%, #1e40af 100%)",
             boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
+            whiteSpace: "nowrap",
           }}
         >
           Record New Expense
@@ -229,29 +236,37 @@ export default function StaffExpensePage() {
       )}
 
       {/* Expense History Table with Filters */}
-      <Card>
-        <CardContent sx={{ p: 3 }}>
+      <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: { xs: "flex-start", sm: "center" },
+              alignItems: { xs: "stretch", sm: "center" },
               flexDirection: { xs: "column", sm: "row" },
               gap: 2,
-              mb: 3,
+              mb: 2.5,
             }}
           >
-            <Typography variant="h6" fontWeight={700}>
+            <Typography variant="h6" fontWeight={800} color="#0f172a">
               Submitted Expenses
             </Typography>
 
-            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1.5,
+                flexWrap: "wrap",
+                flexDirection: { xs: "column", sm: "row" },
+                width: { xs: "100%", sm: "auto" },
+              }}
+            >
               <TextField
                 select
                 size="small"
                 value={caseFilter}
                 onChange={(e) => setCaseFilter(e.target.value)}
-                sx={{ minWidth: 200 }}
+                sx={{ width: { xs: "100%", sm: 220 } }}
                 label="Filter by Case"
               >
                 <MenuItem value="ALL">All Assigned Cases</MenuItem>
@@ -267,6 +282,7 @@ export default function StaffExpensePage() {
                 placeholder="Search description, bill no..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ width: { xs: "100%", sm: 240 } }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -278,8 +294,31 @@ export default function StaffExpensePage() {
             </Box>
           </Box>
 
-          <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #cbd5e1" }}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", md: "none" },
+              color: "text.secondary",
+              mb: 1,
+              textAlign: "right",
+              fontWeight: 600,
+              fontSize: "0.72rem",
+            }}
+          >
+            Scroll horizontally to view all columns & actions →
+          </Typography>
+
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              border: "1px solid #cbd5e1",
+              borderRadius: 2,
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            <Table sx={{ minWidth: 800 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Date & Time</TableCell>

@@ -96,7 +96,7 @@ export default function LoginPage() {
         justifyContent: "center",
         backgroundColor: "#081320",
         backgroundImage: "radial-gradient(at 50% 0%, #0f2942 0px, transparent 65%)",
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
       }}
     >
       <motion.div
@@ -114,7 +114,7 @@ export default function LoginPage() {
             color: "#ffffff",
           }}
         >
-          <CardContent sx={{ p: { xs: 3, sm: 4.5 } }}>
+          <CardContent sx={{ p: { xs: 2.5, sm: 4.5 } }}>
             {/* Law Firm Logo & Header */}
             <Box sx={{ textAlign: "center", mb: 3.5 }}>
               <Box
@@ -133,7 +133,15 @@ export default function LoginPage() {
               >
                 <GavelIcon sx={{ fontSize: 32 }} />
               </Box>
-              <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: "-0.01em", color: "#ffffff" }}>
+              <Typography
+                variant="h5"
+                fontWeight={800}
+                sx={{
+                  letterSpacing: "-0.01em",
+                  color: "#ffffff",
+                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                }}
+              >
                 {settings.firmName || "OJ Legal Advocates & Solicitors"}
               </Typography>
               <Typography variant="caption" sx={{ color: "rgba(255, 255, 255, 0.65)", display: "block", mt: 0.5 }}>

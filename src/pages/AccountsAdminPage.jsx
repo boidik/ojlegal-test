@@ -162,31 +162,36 @@ export default function AccountsAdminPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: "auto" }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 4 }, maxWidth: 1400, mx: "auto" }}>
       {/* Top Header */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: { xs: "flex-start", md: "center" },
+          alignItems: { xs: "stretch", md: "center" },
           flexDirection: { xs: "column", md: "row" },
           gap: 2,
-          mb: 4,
+          mb: { xs: 2.5, md: 4 },
         }}
       >
         <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Typography variant="h4" fontWeight={800} color="text.primary">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+            <Typography
+              variant="h4"
+              fontWeight={800}
+              color="text.primary"
+              sx={{ fontSize: { xs: "1.45rem", sm: "1.85rem", md: "2.125rem" }, lineHeight: 1.2 }}
+            >
               Accounts Admin & Financial Audit
             </Typography>
             <Chip label="BOSS PORTAL" size="small" color="secondary" sx={{ fontWeight: 800, fontSize: "0.7rem" }} />
           </Box>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: { xs: "0.82rem", sm: "0.875rem" } }}>
             Senior Partner overview: verify staff vouchers, manage advance balances, and generate certified Excel & PDF reports.
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", width: { xs: "100%", md: "auto" } }}>
           <Button
             variant="outlined"
             startIcon={<AddIcon />}
@@ -194,7 +199,7 @@ export default function AccountsAdminPage() {
               setSelectedAdvance(null);
               setOpenAdvanceModal(true);
             }}
-            sx={{ fontWeight: 700 }}
+            sx={{ fontWeight: 800, flex: { xs: "1 1 100%", sm: "1 1 auto" }, py: 1 }}
           >
             Disburse Advance
           </Button>
@@ -205,11 +210,13 @@ export default function AccountsAdminPage() {
             startIcon={<FileDownloadIcon />}
             onClick={handleExportExcel}
             sx={{
-              fontWeight: 700,
+              fontWeight: 800,
+              flex: { xs: "1 1 calc(50% - 6px)", sm: "1 1 auto" },
+              py: 1,
               background: "linear-gradient(135deg, #15803d 0%, #16a34a 100%)",
             }}
           >
-            Export to Excel
+            Excel
           </Button>
 
           <Button
@@ -218,11 +225,13 @@ export default function AccountsAdminPage() {
             startIcon={<PictureAsPdfIcon />}
             onClick={handleExportPDF}
             sx={{
-              fontWeight: 700,
+              fontWeight: 800,
+              flex: { xs: "1 1 calc(50% - 6px)", sm: "1 1 auto" },
+              py: 1,
               background: "linear-gradient(135deg, #0f2942 0%, #1e3a5f 100%)",
             }}
           >
-            Generate PDF Report
+            PDF Report
           </Button>
         </Box>
       </Box>
@@ -461,23 +470,55 @@ export default function AccountsAdminPage() {
 
       {/* Tabs: Itemized Expenses vs Advances Float */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-        <Tabs value={activeTab} onChange={(e, val) => setActiveTab(val)}>
-          <Tab
-            label={`Itemized Audit Ledger (${filteredExpenses.length})`}
-            sx={{ fontWeight: 700, fontSize: "0.95rem" }}
-          />
-          <Tab
-            label={`Staff Advances & Float Reconciliation (${filteredAdvances.length})`}
-            sx={{ fontWeight: 700, fontSize: "0.95rem" }}
-          />
+        <Tabs
+          value={activeTab}
+          onChange={(e, val) => setActiveTab(val)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{
+            "& .MuiTab-root": {
+              fontWeight: 800,
+              fontSize: { xs: "0.82rem", sm: "0.95rem" },
+              px: { xs: 1.5, sm: 2.5 },
+              minHeight: 48,
+              whiteSpace: "nowrap",
+            },
+          }}
+        >
+          <Tab label={`Itemized Audit Ledger (${filteredExpenses.length})`} />
+          <Tab label={`Staff Advances & Float (${filteredAdvances.length})`} />
         </Tabs>
       </Box>
 
       {/* TAB 0: Itemized Expenses Ledger */}
       {activeTab === 0 && (
         <Card sx={{ border: "1px solid #cbd5e1" }}>
-          <TableContainer component={Paper} elevation={0}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", md: "none" },
+              color: "text.secondary",
+              px: 2,
+              pt: 1.5,
+              pb: 0.5,
+              textAlign: "right",
+              fontWeight: 600,
+              fontSize: "0.72rem",
+            }}
+          >
+            Scroll horizontally for full ledger columns →
+          </Typography>
+
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            <Table sx={{ minWidth: 920 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Date</TableCell>
@@ -630,9 +671,18 @@ export default function AccountsAdminPage() {
       {/* TAB 1: Staff Advances & Float Reconciliation */}
       {activeTab === 1 && (
         <Card sx={{ border: "1px solid #cbd5e1" }}>
-          <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box
+            sx={{
+              p: 2.5,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: { xs: "stretch", sm: "center" },
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 2,
+            }}
+          >
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>
+              <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
                 Staff Advance Disbursements & Float Settlements
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -648,15 +698,38 @@ export default function AccountsAdminPage() {
                 setSelectedAdvance(null);
                 setOpenAdvanceModal(true);
               }}
-              sx={{ fontWeight: 700 }}
+              sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" }, whiteSpace: "nowrap" }}
             >
               Disburse New Advance
             </Button>
           </Box>
           <Divider />
 
-          <TableContainer component={Paper} elevation={0}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", md: "none" },
+              color: "text.secondary",
+              px: 2,
+              pt: 1.5,
+              pb: 0.5,
+              textAlign: "right",
+              fontWeight: 600,
+              fontSize: "0.72rem",
+            }}
+          >
+            Scroll horizontally for all advance columns →
+          </Typography>
+
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            <Table sx={{ minWidth: 880 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Advance ID</TableCell>

@@ -25,7 +25,18 @@ export default function StatCard({ title, value, subtitle, icon: Icon, color = "
               <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                 {title}
               </Typography>
-              <Typography variant="h4" sx={{ mt: 0.5, mb: 0.5, fontWeight: 800, color: "text.primary" }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  mt: 0.5,
+                  mb: 0.5,
+                  fontWeight: 800,
+                  color: "text.primary",
+                  fontSize: { xs: "1.35rem", sm: "1.65rem", md: "2rem" },
+                  lineHeight: 1.2,
+                  wordBreak: "break-word",
+                }}
+              >
                 {value}
               </Typography>
               {subtitle && (

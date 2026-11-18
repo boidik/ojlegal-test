@@ -251,7 +251,7 @@ export default function SoftwareAdminPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: "auto" }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 4 }, maxWidth: 1400, mx: "auto" }}>
       {/* Top Page Header */}
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -266,15 +266,21 @@ export default function SoftwareAdminPage() {
               alignItems: "center",
               justifyContent: "center",
               boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
+              flexShrink: 0,
             }}
           >
             <AdminPanelSettingsIcon sx={{ fontSize: 26 }} />
           </Box>
           <Box>
-            <Typography variant="h4" fontWeight={800} color="#0f172a">
+            <Typography
+              variant="h4"
+              fontWeight={800}
+              color="#0f172a"
+              sx={{ fontSize: { xs: "1.45rem", sm: "1.85rem", md: "2.125rem" } }}
+            >
               Software Admin Master Console
             </Typography>
-            <Typography variant="body2" color="#334155" fontWeight={500}>
+            <Typography variant="body2" color="#334155" fontWeight={500} sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
               Comprehensive administration: manage courts, firm details, categories, case registry, and 1-click user permissions.
             </Typography>
           </Box>
@@ -297,6 +303,7 @@ export default function SoftwareAdminPage() {
           onChange={(e, val) => setActiveTab(val)}
           variant="scrollable"
           scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{
             "& .MuiTabs-indicator": {
               display: "none",
@@ -445,15 +452,29 @@ export default function SoftwareAdminPage() {
                 setSelectedCase(null);
                 setOpenCaseModal(true);
               }}
-              sx={{ fontWeight: 800, px: 2.5, backgroundColor: "#0f2942" }}
+              sx={{ fontWeight: 800, px: 2.5, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
             >
               Register New Case
             </Button>
           </Box>
           <Divider />
 
-          <TableContainer component={Paper} elevation={0}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", sm: "none" },
+              px: 2.5,
+              py: 0.8,
+              color: "#64748b",
+              bgcolor: "#f1f5f9",
+              fontStyle: "italic",
+            }}
+          >
+            ⇄ Swipe horizontally to inspect full case details & actions
+          </Typography>
+
+          <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Table sx={{ minWidth: 800 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Case / Filing No</TableCell>
@@ -558,13 +579,13 @@ export default function SoftwareAdminPage() {
                 Courts defined here appear dynamically in the Case Registry dropdown across the system.
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", md: "auto" } }}>
               <Button
                 variant="outlined"
                 color="secondary"
                 startIcon={<AutoAwesomeIcon />}
                 onClick={seedStandardForums}
-                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324" }}
+                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324", width: { xs: "100%", sm: "auto" } }}
               >
                 Seed Standard Legal Courts
               </Button>
@@ -575,7 +596,7 @@ export default function SoftwareAdminPage() {
                   setSelectedForum(null);
                   setOpenForumModal(true);
                 }}
-                sx={{ fontWeight: 800, backgroundColor: "#0f2942" }}
+                sx={{ fontWeight: 800, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
               >
                 Add Court / Forum
               </Button>
@@ -583,8 +604,22 @@ export default function SoftwareAdminPage() {
           </Box>
           <Divider />
 
-          <TableContainer component={Paper} elevation={0}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", sm: "none" },
+              px: 2.5,
+              py: 0.8,
+              color: "#64748b",
+              bgcolor: "#f1f5f9",
+              fontStyle: "italic",
+            }}
+          >
+            ⇄ Swipe horizontally to inspect full court/forum details & actions
+          </Typography>
+
+          <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Court / Forum Name</TableCell>
@@ -681,13 +716,13 @@ export default function SoftwareAdminPage() {
                 Every category can be edited here. Categories classified as 'Legal' or 'Technical' are separated in Boss audits.
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", md: "auto" } }}>
               <Button
                 variant="outlined"
                 color="secondary"
                 startIcon={<AutoAwesomeIcon />}
                 onClick={seedStandardCategories}
-                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324" }}
+                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324", width: { xs: "100%", sm: "auto" } }}
               >
                 Seed Standard Legal Categories
               </Button>
@@ -698,7 +733,7 @@ export default function SoftwareAdminPage() {
                   setSelectedCategory(null);
                   setOpenCategoryModal(true);
                 }}
-                sx={{ fontWeight: 800, backgroundColor: "#0f2942" }}
+                sx={{ fontWeight: 800, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
               >
                 Add Category
               </Button>
@@ -706,8 +741,22 @@ export default function SoftwareAdminPage() {
           </Box>
           <Divider />
 
-          <TableContainer component={Paper} elevation={0}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", sm: "none" },
+              px: 2.5,
+              py: 0.8,
+              color: "#64748b",
+              bgcolor: "#f1f5f9",
+              fontStyle: "italic",
+            }}
+          >
+            ⇄ Swipe horizontally to inspect audit classifications & actions
+          </Typography>
+
+          <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Table sx={{ minWidth: 720 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Category Name</TableCell>
@@ -974,6 +1023,7 @@ export default function SoftwareAdminPage() {
                       px: 4,
                       backgroundColor: "#0f2942",
                       boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
+                      width: { xs: "100%", sm: "auto" },
                     }}
                   >
                     Save All Law Firm Details
@@ -1169,6 +1219,7 @@ export default function SoftwareAdminPage() {
                       py: 1.3,
                       px: 4,
                       backgroundColor: "#0f2942",
+                      width: { xs: "100%", sm: "auto" },
                     }}
                   >
                     Save All Branding & Favicon Settings
@@ -1196,8 +1247,22 @@ export default function SoftwareAdminPage() {
           </Box>
           <Divider />
 
-          <TableContainer component={Paper} elevation={0}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", sm: "none" },
+              px: 2.5,
+              py: 0.8,
+              color: "#64748b",
+              bgcolor: "#f1f5f9",
+              fontStyle: "italic",
+            }}
+          >
+            ⇄ Swipe horizontally to manage roles & permissions
+          </Typography>
+
+          <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Table sx={{ minWidth: 800 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Member Name</TableCell>
@@ -1410,7 +1475,7 @@ export default function SoftwareAdminPage() {
                 <Button
                   variant="contained"
                   onClick={handleSaveFirebase}
-                  sx={{ fontWeight: 800, backgroundColor: "#0f2942" }}
+                  sx={{ fontWeight: 800, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
                 >
                   Save Firebase Credentials
                 </Button>
@@ -1418,12 +1483,12 @@ export default function SoftwareAdminPage() {
                   variant="outlined"
                   onClick={handleTestFirebase}
                   disabled={testingConnection}
-                  sx={{ fontWeight: 800 }}
+                  sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" } }}
                 >
                   {testingConnection ? <CircularProgress size={20} /> : "Test Live Connection"}
                 </Button>
                 {isFirebaseConfigured() && (
-                  <Button color="error" onClick={handleDisconnectFirebase} sx={{ fontWeight: 700 }}>
+                  <Button color="error" onClick={handleDisconnectFirebase} sx={{ fontWeight: 700, width: { xs: "100%", sm: "auto" } }}>
                     Disconnect
                   </Button>
                 )}
@@ -1559,8 +1624,22 @@ service cloud.firestore {
           </Box>
           <Divider />
 
-          <TableContainer component={Paper} elevation={0}>
-            <Table>
+          <Typography
+            variant="caption"
+            sx={{
+              display: { xs: "block", sm: "none" },
+              px: 2.5,
+              py: 0.8,
+              color: "#64748b",
+              bgcolor: "#f1f5f9",
+              fontStyle: "italic",
+            }}
+          >
+            ⇄ Swipe horizontally to view full voucher logs & master actions
+          </Typography>
+
+          <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Table sx={{ minWidth: 850 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>ID / Date</TableCell>
