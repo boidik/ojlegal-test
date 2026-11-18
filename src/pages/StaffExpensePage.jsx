@@ -28,6 +28,7 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { motion } from "framer-motion";
 import StatCard from "../components/StatCard";
 import ExpenseDialog from "../components/ExpenseDialog";
@@ -36,7 +37,7 @@ import { useApp } from "../context/AppContext";
 
 export default function StaffExpensePage() {
   const { currentUser } = useAuth();
-  const { expenses, advances, cases, settings, deleteExpense } = useApp();
+  const { expenses, advances, cases, settings, deleteExpense, refreshData, showNotification } = useApp();
 
   const currency = settings.currencySymbol || "₹";
 
@@ -44,25 +45,54 @@ export default function StaffExpensePage() {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [caseFilter, setCaseFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Filter expenses belonging to this logged in staff member
-  const myExpenses = expenses.filter(e =>
-    e.staffId === currentUser?.uid ||
-    (currentUser?.email && (e.staffEmail || "").toLowerCase() === currentUser.email.toLowerCase()) ||
-    (currentUser?.displayName && (e.staffName || "").toLowerCase() === currentUser.displayName.toLowerCase())
-  );
+  // Universal Staff Matcher for expenses and advances
+  const isMyRecord = (record) => {
+    if (!record || !currentUser) return false;
 
-  // Filter advances belonging to this logged in staff member
-  const myAdvances = advances.filter(a =>
-    a.staffId === currentUser?.uid ||
-    (currentUser?.email && (a.staffEmail || "").toLowerCase() === currentUser.email.toLowerCase()) ||
-    (currentUser?.displayName && (a.staffName || "").toLowerCase() === currentUser.displayName.toLowerCase())
-  );
+    const cUid = String(currentUser.uid || "").trim();
+    const cEmail = String(currentUser.email || "").trim().toLowerCase();
+    const cName = String(currentUser.displayName || "").trim().toLowerCase();
+
+    const rStaffId = String(record.staffId || "").trim();
+    const rStaffEmail = String(record.staffEmail || "").trim().toLowerCase();
+    const rStaffName = String(record.staffName || "").trim().toLowerCase();
+
+    // 1. Exact UID match
+    if (cUid && (rStaffId === cUid || rStaffEmail === cUid)) return true;
+
+    // 2. Email match (case-insensitive & trimmed)
+    if (cEmail && (rStaffEmail === cEmail || rStaffId.toLowerCase() === cEmail)) return true;
+
+    // 3. Name match
+    if (cName && (rStaffName === cName || rStaffId.toLowerCase() === cName)) return true;
+
+    // 4. Email prefix match (e.g. boidik in boidik@...)
+    if (cEmail && rStaffEmail && cEmail.split("@")[0] === rStaffEmail.split("@")[0]) return true;
+
+    return false;
+  };
+
+  const myExpenses = expenses.filter(isMyRecord);
+  const myAdvances = advances.filter(isMyRecord);
 
   const totalMyExpenses = myExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const totalAdvancesReceived = myAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   const totalAdvancesUsed = myAdvances.reduce((sum, a) => sum + (Number(a.usedAmount) || 0), 0);
   const remainingFloatBalance = totalAdvancesReceived - totalAdvancesUsed;
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+      showNotification("Advance floats and ledger successfully synchronized with database.", "success");
+    } catch (e) {
+      showNotification("Failed to refresh: " + e.message, "error");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Filtered expenses list
   const filteredExpenses = myExpenses.filter(e => {
@@ -112,31 +142,51 @@ export default function StaffExpensePage() {
             Staff Expense Portal
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.82rem", sm: "0.875rem" } }}>
-            Welcome, <strong>{currentUser?.displayName || "Advocate"}</strong>. Record case expenditures and monitor your authorized advance float.
+            Welcome, <strong>{currentUser?.displayName || "Advocate"}</strong> ({currentUser?.email}). Record case expenditures and monitor your authorized advance float.
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setSelectedExpense(null);
-            setOpenExpenseModal(true);
-          }}
-          sx={{
-            py: 1.2,
-            px: 3,
-            width: { xs: "100%", sm: "auto" },
-            fontSize: "0.95rem",
-            fontWeight: 800,
-            background: "linear-gradient(135deg, #0f2942 0%, #1e40af 100%)",
-            boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Record New Expense
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<RefreshIcon />}
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            sx={{
+              py: 1.2,
+              px: 2.5,
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderColor: "#0f2942",
+              flex: { xs: "1 1 auto", sm: "none" },
+            }}
+          >
+            {refreshing ? "Refreshing..." : "Refresh Float"}
+          </Button>
+
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setSelectedExpense(null);
+              setOpenExpenseModal(true);
+            }}
+            sx={{
+              py: 1.2,
+              px: 3,
+              fontSize: "0.95rem",
+              fontWeight: 800,
+              background: "linear-gradient(135deg, #0f2942 0%, #1e40af 100%)",
+              boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
+              whiteSpace: "nowrap",
+              flex: { xs: "1 1 auto", sm: "none" },
+            }}
+          >
+            Record New Expense
+          </Button>
+        </Box>
       </Box>
 
       {/* KPI Cards */}

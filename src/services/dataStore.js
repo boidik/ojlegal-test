@@ -1,5 +1,6 @@
 import { 
   db, 
+  auth,
   isFirebaseConfigured 
 } from "./firebase";
 import { 
@@ -11,6 +12,8 @@ import {
   deleteDoc, 
   query, 
   orderBy, 
+  where,
+  onSnapshot,
   getDoc 
 } from "firebase/firestore";
 import { 
@@ -315,37 +318,154 @@ export const getAdvances = async (staffId = null) => {
   let list = [];
   if (isFirebaseConfigured() && db) {
     try {
+      // Step 1: Attempt to read all advances (succeeds for accounts_admin and software_admin)
       let snapshot;
       try {
         const q = query(collection(db, "advances"), orderBy("disbursedDate", "desc"));
         snapshot = await getDocs(q);
-      } catch (err) {
-        // Fallback without sorting if composite index or field is missing
+      } catch (sortErr) {
         snapshot = await getDocs(collection(db, "advances"));
       }
       list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch (e) {
-      console.warn("Remote getAdvances failed:", e);
-      list = [];
+    } catch (permErr) {
+      console.warn("Collection-level advances query blocked by permissions; initiating targeted associate queries...", permErr);
+      
+      // Step 2: Targeted query for staff associate.
+      // Firestore security rules that check `resource.data.staffId == request.auth.uid`
+      // ALWAYS permit queries filtered by `where("staffId", "==", auth.currentUser.uid)`.
+      try {
+        const currentUser = auth?.currentUser;
+        if (currentUser) {
+          const docMap = new Map();
+
+          // A: Query by UID
+          try {
+            const qUid = query(collection(db, "advances"), where("staffId", "==", currentUser.uid));
+            const sUid = await getDocs(qUid);
+            sUid.docs.forEach(d => docMap.set(d.id, { id: d.id, ...d.data() }));
+          } catch (eA) {
+            console.warn("Targeted UID advance query failed:", eA);
+          }
+
+          // B: Query by Email
+          if (currentUser.email) {
+            try {
+              const qEmail = query(collection(db, "advances"), where("staffEmail", "==", currentUser.email));
+              const sEmail = await getDocs(qEmail);
+              sEmail.docs.forEach(d => docMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (eB) {
+              console.warn("Targeted Email advance query failed:", eB);
+            }
+
+            try {
+              const qEmailLower = query(collection(db, "advances"), where("staffEmail", "==", currentUser.email.toLowerCase()));
+              const sEmailLower = await getDocs(qEmailLower);
+              sEmailLower.docs.forEach(d => docMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (eBLower) {}
+
+            try {
+              const qStaffIdEmail = query(collection(db, "advances"), where("staffId", "==", currentUser.email));
+              const sStaffIdEmail = await getDocs(qStaffIdEmail);
+              sStaffIdEmail.docs.forEach(d => docMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (eBStaffId) {}
+          }
+
+          // C: Query by Display Name
+          if (currentUser.displayName) {
+            try {
+              const qName = query(collection(db, "advances"), where("staffName", "==", currentUser.displayName));
+              const sName = await getDocs(qName);
+              sName.docs.forEach(d => docMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (eC) {
+              console.warn("Targeted Name advance query failed:", eC);
+            }
+          }
+
+          list = Array.from(docMap.values());
+        }
+      } catch (targetedErr) {
+        console.warn("All targeted advance queries failed:", targetedErr);
+      }
     }
-  } else {
-    list = getLocal(STORAGE_KEYS.ADVANCES, []);
   }
 
+  // Step 3: Local storage synchronization and fallback
+  if (list.length === 0) {
+    const local = getLocal(STORAGE_KEYS.ADVANCES, []);
+    if (local && local.length > 0) {
+      list = local;
+    }
+  } else {
+    // Keep local cache up to date
+    try {
+      const local = getLocal(STORAGE_KEYS.ADVANCES, []);
+      const mergedMap = new Map();
+      local.forEach(item => mergedMap.set(item.id, item));
+      list.forEach(item => mergedMap.set(item.id, item));
+      setLocal(STORAGE_KEYS.ADVANCES, Array.from(mergedMap.values()));
+    } catch (e) {}
+  }
+
+  // Sort by disbursedDate descending
+  list.sort((a, b) => (b.disbursedDate || "").localeCompare(a.disbursedDate || ""));
+
   if (staffId && staffId !== "ALL") {
-    list = list.filter(a => a.staffId === staffId || a.staffEmail === staffId);
+    const s = String(staffId).trim().toLowerCase();
+    list = list.filter(a =>
+      String(a.staffId || "").trim().toLowerCase() === s ||
+      String(a.staffEmail || "").trim().toLowerCase() === s
+    );
   }
 
   return list;
+};
+
+// Real-time Firestore subscription for advances
+export const subscribeAdvances = (callback) => {
+  if (!isFirebaseConfigured() || !db) return () => {};
+
+  try {
+    const q = query(collection(db, "advances"));
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const advancesList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        advancesList.sort((a, b) => (b.disbursedDate || "").localeCompare(a.disbursedDate || ""));
+        callback(advancesList);
+      },
+      (err) => {
+        console.warn("Real-time advances collection snapshot listener blocked; falling back to targeted listener:", err);
+        const currentUser = auth?.currentUser;
+        if (currentUser) {
+          const qTarget = query(collection(db, "advances"), where("staffId", "==", currentUser.uid));
+          return onSnapshot(
+            qTarget,
+            (s) => {
+              const userAdvances = s.docs.map(d => ({ id: d.id, ...d.data() }));
+              userAdvances.sort((a, b) => (b.disbursedDate || "").localeCompare(a.disbursedDate || ""));
+              callback(userAdvances);
+            },
+            (e) => console.warn("Targeted snapshot listener error:", e)
+          );
+        }
+      }
+    );
+  } catch (e) {
+    console.warn("subscribeAdvances initialization failed:", e);
+    return () => {};
+  }
 };
 
 export const addAdvance = async (advanceData) => {
   const newAdvance = {
     ...advanceData,
     id: advanceData.id || `ADV-${Date.now().toString().slice(-5)}`,
+    staffId: String(advanceData.staffId || "").trim(),
+    staffEmail: String(advanceData.staffEmail || "").trim().toLowerCase(),
+    staffName: String(advanceData.staffName || "").trim(),
     amount: Number(advanceData.amount) || 0,
-    usedAmount: 0,
-    status: "active",
+    usedAmount: Number(advanceData.usedAmount) || 0,
+    status: advanceData.status || "active",
     disbursedDate: advanceData.disbursedDate || new Date().toISOString().split("T")[0],
   };
 
@@ -354,17 +474,25 @@ export const addAdvance = async (advanceData) => {
   }
 
   const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
-  const updated = [newAdvance, ...localAdvances];
+  const updated = [newAdvance, ...localAdvances.filter(a => a.id !== newAdvance.id)];
   setLocal(STORAGE_KEYS.ADVANCES, updated);
   return newAdvance;
 };
 
 export const updateAdvance = async (id, updates) => {
+  const sanitizedUpdates = {
+    ...updates,
+    ...(updates.amount !== undefined ? { amount: Number(updates.amount) } : {}),
+    ...(updates.staffEmail ? { staffEmail: String(updates.staffEmail).trim().toLowerCase() } : {}),
+    ...(updates.staffId ? { staffId: String(updates.staffId).trim() } : {}),
+    ...(updates.staffName ? { staffName: String(updates.staffName).trim() } : {}),
+  };
+
   if (isFirebaseConfigured() && db) {
-    await updateDoc(doc(db, "advances", id), updates);
+    await updateDoc(doc(db, "advances", id), sanitizedUpdates);
   }
   const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
-  const updated = localAdvances.map(a => a.id === id ? { ...a, ...updates } : a);
+  const updated = localAdvances.map(a => a.id === id ? { ...a, ...sanitizedUpdates } : a);
   setLocal(STORAGE_KEYS.ADVANCES, updated);
   return updated.find(a => a.id === id);
 };

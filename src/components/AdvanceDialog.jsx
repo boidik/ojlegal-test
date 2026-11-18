@@ -44,10 +44,14 @@ export default function AdvanceDialog({ open, onClose, advanceToEdit = null }) {
 
   useEffect(() => {
     if (advanceToEdit) {
+      const matchedUser = users.find(
+        u => u.uid === advanceToEdit.staffId || 
+             (advanceToEdit.staffEmail && (u.email || "").toLowerCase() === (advanceToEdit.staffEmail || "").toLowerCase())
+      );
       setFormData({
-        staffId: advanceToEdit.staffId || "",
-        staffName: advanceToEdit.staffName || "",
-        staffEmail: advanceToEdit.staffEmail || "",
+        staffId: advanceToEdit.staffId || (matchedUser ? matchedUser.uid : ""),
+        staffName: advanceToEdit.staffName || (matchedUser ? matchedUser.displayName : ""),
+        staffEmail: advanceToEdit.staffEmail || (matchedUser ? matchedUser.email : ""),
         amount: advanceToEdit.amount || "",
         caseId: advanceToEdit.caseId || "ALL",
         caseTitle: advanceToEdit.caseTitle || "General Office Out-of-Pocket Float",
@@ -110,8 +114,16 @@ export default function AdvanceDialog({ open, onClose, advanceToEdit = null }) {
     setError("");
 
     try {
+      const matched = users.find(
+        u => u.uid === formData.staffId || 
+             (formData.staffEmail && (u.email || "").toLowerCase() === (formData.staffEmail || "").toLowerCase())
+      );
+
       const payload = {
         ...formData,
+        staffId: formData.staffId || (matched ? matched.uid : ""),
+        staffName: matched?.displayName || formData.staffName || "Staff Associate",
+        staffEmail: (matched?.email || formData.staffEmail || "").toLowerCase().trim(),
         amount: Number(formData.amount),
         disbursedBy: currentUser?.displayName || "Managing Partner / Accounts Admin",
       };

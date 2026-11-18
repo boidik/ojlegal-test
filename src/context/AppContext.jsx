@@ -13,6 +13,7 @@ import {
   addAdvance as dbAddAdvance,
   updateAdvance as dbUpdateAdvance,
   deleteAdvance as dbDeleteAdvance,
+  subscribeAdvances,
   getCategories,
   addCategory as dbAddCategory,
   updateCategory as dbUpdateCategory,
@@ -32,10 +33,12 @@ import {
   applyFaviconAndTitle
 } from "../services/dataStore";
 import { isFirebaseConfigured, getActiveFirebaseConfig } from "../services/firebase";
+import { useAuth } from "./AuthContext";
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  const { currentUser } = useAuth();
   const [cases, setCases] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [advances, setAdvances] = useState([]);
@@ -91,9 +94,31 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  // Initial load & whenever auth user state changes (e.g. login, token restore, role change)
   useEffect(() => {
     refreshData();
+  }, [currentUser?.uid, currentUser?.role, refreshData]);
+
+  // Window Focus Auto-Sync: automatically re-sync when switching tabs
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshData();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [refreshData]);
+
+  // Real-time Firestore subscription for advances
+  useEffect(() => {
+    const unsubscribe = subscribeAdvances((updatedAdvances) => {
+      if (updatedAdvances) {
+        setAdvances(updatedAdvances);
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [currentUser?.uid]);
 
   // ==================== EXPENSE HANDLERS ====================
   const handleAddExpense = async (data) => {

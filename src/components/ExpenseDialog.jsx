@@ -52,12 +52,25 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
   const targetStaffEmail = expenseToEdit ? expenseToEdit.staffEmail : currentUser?.email;
   const targetStaffName = expenseToEdit ? expenseToEdit.staffName : currentUser?.displayName;
 
-  const staffAdvances = advances.filter(
-    a => (a.staffId === targetStaffId ||
-          (targetStaffEmail && (a.staffEmail || "").toLowerCase() === targetStaffEmail.toLowerCase()) ||
-          (targetStaffName && (a.staffName || "").toLowerCase() === targetStaffName.toLowerCase())) &&
-         (a.amount - (a.usedAmount || 0) > 0)
-  );
+  const staffAdvances = advances.filter(a => {
+    if (!a) return false;
+    const balance = Number(a.amount || 0) - Number(a.usedAmount || 0);
+    if (balance <= 0) return false;
+
+    const tId = String(targetStaffId || "").trim();
+    const tEmail = String(targetStaffEmail || "").trim().toLowerCase();
+    const tName = String(targetStaffName || "").trim().toLowerCase();
+
+    const aId = String(a.staffId || "").trim();
+    const aEmail = String(a.staffEmail || "").trim().toLowerCase();
+    const aName = String(a.staffName || "").trim().toLowerCase();
+
+    if (tId && (aId === tId || aEmail === tId)) return true;
+    if (tEmail && (aEmail === tEmail || aId.toLowerCase() === tEmail)) return true;
+    if (tName && (aName === tName || aId.toLowerCase() === tName)) return true;
+
+    return false;
+  });
 
   useEffect(() => {
     if (expenseToEdit) {
