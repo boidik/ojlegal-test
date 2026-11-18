@@ -276,7 +276,6 @@ export const subscribeExpenses = (callback) => {
       (snapshot) => {
         const expensesList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         expensesList.sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
-        setLocal(STORAGE_KEYS.EXPENSES, expensesList);
         callback(expensesList);
       },
       (err) => {

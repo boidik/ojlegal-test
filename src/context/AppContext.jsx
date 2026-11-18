@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import {
   initializeDataStore,
   getCases,
@@ -64,9 +64,13 @@ export const AppProvider = ({ children }) => {
     setNotification(prev => ({ ...prev, open: false }));
   };
 
+  // Refs to hold latest values for cross-reconciliation without triggering effect re-runs
+  const expensesRef = useRef([]);
+  const rawAdvancesRef = useRef([]);
+
   // Live Mathematical Reconciler: dynamically computes usedAmount and remaining balance
   // for all advances from actual verified expenses where paymentMode === "firm_advance"
-  const computeReconciledAdvances = (rawAdvances, rawExpenses) => {
+  const computeReconciledAdvances = useCallback((rawAdvances, rawExpenses) => {
     if (!rawAdvances) return [];
     return rawAdvances.map((adv) => {
       const matchingExpenses = (rawExpenses || []).filter(
@@ -74,7 +78,6 @@ export const AppProvider = ({ children }) => {
       );
       const fromExpenses = matchingExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
       const totalAllocated = Number(adv.amount || 0);
-      // If expenses match, they are authoritative. If rawExpenses is loaded and has 0 matching, used is 0.
       const effectiveUsed = fromExpenses;
       const balance = Math.max(0, totalAllocated - effectiveUsed);
       return {
@@ -85,7 +88,16 @@ export const AppProvider = ({ children }) => {
         status: balance <= 0 ? "settled" : "active",
       };
     });
-  };
+  }, []);
+
+  // Sync refs whenever state updates
+  useEffect(() => {
+    expensesRef.current = expenses;
+  }, [expenses]);
+
+  useEffect(() => {
+    rawAdvancesRef.current = advances;
+  }, [advances]);
 
   // Fetch all collections
   const refreshData = useCallback(async () => {
@@ -102,6 +114,8 @@ export const AppProvider = ({ children }) => {
         getUsers()
       ]);
 
+      expensesRef.current = fetchedExpenses;
+      rawAdvancesRef.current = fetchedAdvances;
       const reconciledAdvances = computeReconciledAdvances(fetchedAdvances, fetchedExpenses);
 
       setCases(fetchedCases);
@@ -118,42 +132,53 @@ export const AppProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [computeReconciledAdvances]);
 
   // Initial load & whenever auth user state changes (e.g. login, token restore, role change)
   useEffect(() => {
     refreshData();
   }, [currentUser?.uid, currentUser?.role, refreshData]);
 
-  // Window Focus Auto-Sync: automatically re-sync when switching tabs
+  // Window Focus Auto-Sync: throttled to at most once per 60 seconds
   useEffect(() => {
+    let lastSync = Date.now();
     const handleFocus = () => {
-      refreshData();
+      if (Date.now() - lastSync > 60000) {
+        lastSync = Date.now();
+        refreshData();
+      }
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [refreshData]);
 
   // Real-time Firestore subscriptions for live synchronization of expenses and advances
+  // ONLY runs once per user session. Uses stable refs to prevent re-subscription loops.
   useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    let isSubscribed = true;
+
     const unsubAdvances = subscribeAdvances((updatedAdvances) => {
-      if (updatedAdvances) {
-        setAdvances((prevAdvances) => computeReconciledAdvances(updatedAdvances, expenses));
-      }
+      if (!isSubscribed || !updatedAdvances) return;
+      rawAdvancesRef.current = updatedAdvances;
+      const reconciled = computeReconciledAdvances(updatedAdvances, expensesRef.current);
+      setAdvances(reconciled);
     });
 
     const unsubExpenses = subscribeExpenses((updatedExpenses) => {
-      if (updatedExpenses) {
-        setExpenses(updatedExpenses);
-        setAdvances((prevAdvances) => computeReconciledAdvances(prevAdvances, updatedExpenses));
-      }
+      if (!isSubscribed || !updatedExpenses) return;
+      expensesRef.current = updatedExpenses;
+      setExpenses(updatedExpenses);
+      setAdvances((prev) => computeReconciledAdvances(rawAdvancesRef.current.length > 0 ? rawAdvancesRef.current : prev, updatedExpenses));
     });
 
     return () => {
+      isSubscribed = false;
       if (typeof unsubAdvances === "function") unsubAdvances();
       if (typeof unsubExpenses === "function") unsubExpenses();
     };
-  }, [currentUser?.uid, expenses]);
+  }, [currentUser?.uid, computeReconciledAdvances]);
 
   // ==================== EXPENSE HANDLERS ====================
   const handleAddExpense = async (data) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Box, Snackbar, Alert, CircularProgress } from "@mui/material";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Navbar from "./components/Navbar";
 import StaffExpensePage from "./pages/StaffExpensePage";
 import AccountsAdminPage from "./pages/AccountsAdminPage";
@@ -13,36 +13,45 @@ export default function App() {
   const { currentUser, loading, isSoftwareAdmin, isAccountsAdmin, isStaff } = useAuth();
   const { notification, closeNotification } = useApp();
 
-  // Initialize activeTab directly based on user's role:
-  // Software Admin -> "software_admin"
-  // Accounts Admin (Boss) -> "accounts_admin"
-  // Staff Member -> "staff"
-  const [activeTab, setActiveTab] = useState("staff");
+  // Initialize activeTab with session persistence so page refreshes don't lose the user's active view
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem("oj_active_tab") || "staff";
+  });
 
-  // Whenever currentUser or their role changes, automatically direct them to their designated console
+  const handleTabChange = (newTab) => {
+    sessionStorage.setItem("oj_active_tab", newTab);
+    setActiveTab(newTab);
+  };
+
+  // On auth state restoration, ensure the user is defaulted to an authorized view if their saved tab is not allowed
   useEffect(() => {
     if (currentUser?.role) {
-      if (currentUser.role === "software_admin") {
-        setActiveTab("software_admin");
-      } else if (currentUser.role === "accounts_admin") {
-        setActiveTab("accounts_admin");
+      const saved = sessionStorage.getItem("oj_active_tab");
+      if (!saved) {
+        if (currentUser.role === "software_admin") {
+          handleTabChange("software_admin");
+        } else if (currentUser.role === "accounts_admin") {
+          handleTabChange("accounts_admin");
+        } else {
+          handleTabChange("staff");
+        }
       } else {
-        setActiveTab("staff");
+        if (currentUser.role === "staff" && saved !== "staff") {
+          handleTabChange("staff");
+        } else if (currentUser.role === "accounts_admin" && saved === "software_admin") {
+          handleTabChange("accounts_admin");
+        }
       }
     }
   }, [currentUser?.role, currentUser?.uid]);
 
-  // Authorization Guard: Prevent staff or boss from accessing unauthorized tabs
-  useEffect(() => {
-    if (currentUser?.role) {
-      if (currentUser.role === "staff" && activeTab !== "staff") {
-        setActiveTab("staff");
-      }
-      if (currentUser.role === "accounts_admin" && activeTab === "software_admin") {
-        setActiveTab("accounts_admin");
-      }
-    }
-  }, [activeTab, currentUser?.role]);
+  // Synchronously compute the effective authorized tab so there is NEVER a blank frame during state transition
+  let effectiveTab = activeTab;
+  if (currentUser?.role === "staff") {
+    effectiveTab = "staff";
+  } else if (currentUser?.role === "accounts_admin" && activeTab === "software_admin") {
+    effectiveTab = "accounts_admin";
+  }
 
   if (loading) {
     return (
@@ -65,50 +74,32 @@ export default function App() {
     return <LoginPage />;
   }
 
+  // Render authorized page with guaranteed fallback to prevent blank screens
+  const renderCurrentPage = () => {
+    if (effectiveTab === "software_admin" && isSoftwareAdmin) {
+      return <SoftwareAdminPage />;
+    }
+    if (effectiveTab === "accounts_admin" && (isAccountsAdmin || isSoftwareAdmin)) {
+      return <AccountsAdminPage />;
+    }
+    return <StaffExpensePage />;
+  };
+
   return (
     <Box sx={{ minHeight: "100vh", backgroundColor: "background.default", color: "text.primary" }}>
       {/* Top Navbar with role-specific views */}
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navbar activeTab={effectiveTab} setActiveTab={handleTabChange} />
 
-      {/* Main Page Area */}
+      {/* Main Page Area with instant, smooth transition (no blocking wait state) */}
       <Box component="main" sx={{ pb: 8 }}>
-        <AnimatePresence mode="wait">
-          {activeTab === "software_admin" && isSoftwareAdmin && (
-            <motion.div
-              key="software"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <SoftwareAdminPage />
-            </motion.div>
-          )}
-
-          {activeTab === "accounts_admin" && (isAccountsAdmin || isSoftwareAdmin) && (
-            <motion.div
-              key="accounts"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <AccountsAdminPage />
-            </motion.div>
-          )}
-
-          {activeTab === "staff" && (
-            <motion.div
-              key="staff"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <StaffExpensePage />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <motion.div
+          key={effectiveTab}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
+        >
+          {renderCurrentPage()}
+        </motion.div>
       </Box>
 
       {/* Global Notification Toast */}
