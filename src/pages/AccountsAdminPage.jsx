@@ -49,10 +49,12 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
+import { useAppTheme } from "../context/ThemeContext";
 import { exportExpensesToExcel, exportExpensesToPDF } from "../services/exportService";
 
 export default function AccountsAdminPage() {
   const { currentUser } = useAuth();
+  const { mode } = useAppTheme();
   const {
     expenses,
     advances,
@@ -351,7 +353,7 @@ export default function AccountsAdminPage() {
       </Grid>
 
       {/* Legal vs Technical Separation Visualizer */}
-      <Card sx={{ mb: 4, border: "1px solid #e2e8f0" }}>
+      <Card sx={{ mb: 4, border: "1px solid", borderColor: "divider" }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
             <Typography variant="subtitle1" fontWeight={700}>
@@ -363,7 +365,7 @@ export default function AccountsAdminPage() {
           </Box>
 
           {/* Visual Stacked Progress Bar */}
-          <Box sx={{ display: "flex", height: 14, borderRadius: 2, overflow: "hidden", mb: 2, backgroundColor: "#f1f5f9" }}>
+          <Box sx={{ display: "flex", height: 14, borderRadius: 2, overflow: "hidden", mb: 2, backgroundColor: mode === "light" ? "#f1f5f9" : "rgba(255,255,255,0.08)" }}>
             <Box sx={{ width: `${legalPct}%`, backgroundColor: "#1e40af" }} title={`Legal: ${legalPct}%`} />
             <Box sx={{ width: `${techPct}%`, backgroundColor: "#b45309" }} title={`Technical: ${techPct}%`} />
             <Box sx={{ width: `${adminPct}%`, backgroundColor: "#64748b" }} title={`Admin: ${adminPct}%`} />
@@ -410,7 +412,7 @@ export default function AccountsAdminPage() {
       </Card>
 
       {/* Comprehensive Multi-Parameter Filter Card */}
-      <Card sx={{ mb: 4, border: "1px solid #cbd5e1" }}>
+      <Card sx={{ mb: 4, border: "1px solid", borderColor: "divider" }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -574,7 +576,7 @@ export default function AccountsAdminPage() {
 
       {/* TAB 0: Itemized Expenses Ledger */}
       {activeTab === 0 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Typography
             variant="caption"
             sx={{
@@ -756,7 +758,7 @@ export default function AccountsAdminPage() {
 
       {/* TAB 1: Staff Advances & Float Reconciliation */}
       {activeTab === 1 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box
             sx={{
               p: 2.5,
@@ -768,7 +770,7 @@ export default function AccountsAdminPage() {
             }}
           >
             <Box>
-              <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+              <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                 Staff Advance Disbursements & Float Settlements
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -954,7 +956,7 @@ export default function AccountsAdminPage() {
 
       {/* TAB 2 (Delegated): Case Registry */}
       {canManageCases && activeTab === caseTabIndex && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box
             sx={{
               p: { xs: 2, sm: 2.5 },
@@ -963,15 +965,16 @@ export default function AccountsAdminPage() {
               justifyContent: "space-between",
               alignItems: "center",
               gap: 2,
-              borderBottom: "1px solid #e2e8f0",
-              backgroundColor: "#f8fafc",
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              backgroundColor: mode === "light" ? "#f8fafc" : "#16253b",
             }}
           >
             <Box>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Law Firm Case Registry (Delegated Access)
               </Typography>
-              <Typography variant="body2" color="#64748b">
+              <Typography variant="body2" color="text.secondary">
                 Authorized by Managing Partner to register and maintain active litigation & arbitration matters.
               </Typography>
             </Box>
@@ -982,7 +985,7 @@ export default function AccountsAdminPage() {
                 setCaseToEdit(null);
                 setOpenCaseModal(true);
               }}
-              sx={{ backgroundColor: "#0f2942", fontWeight: 800 }}
+              sx={{ fontWeight: 800 }}
             >
               Add New Case
             </Button>
@@ -1006,7 +1009,7 @@ export default function AccountsAdminPage() {
 
           <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
             <Table sx={{ minWidth: { xs: 700, sm: 800 } }} size="medium">
-              <TableHead sx={{ backgroundColor: "#f1f5f9" }}>
+              <TableHead sx={{ backgroundColor: mode === "light" ? "#f1f5f9" : "#142136" }}>
                 <TableRow>
                   <TableCell>Case ID / Number</TableCell>
                   <TableCell>Title & Client</TableCell>
@@ -1102,7 +1105,7 @@ export default function AccountsAdminPage() {
 
       {/* TAB 3 (Delegated): Courts & Forums */}
       {canManageForums && activeTab === forumTabIndex && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box
             sx={{
               p: { xs: 2, sm: 2.5 },
@@ -1111,15 +1114,16 @@ export default function AccountsAdminPage() {
               justifyContent: "space-between",
               alignItems: "center",
               gap: 2,
-              borderBottom: "1px solid #e2e8f0",
-              backgroundColor: "#f8fafc",
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              backgroundColor: mode === "light" ? "#f8fafc" : "#16253b",
             }}
           >
             <Box>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Courts, Tribunals & Forums Registry (Delegated Access)
               </Typography>
-              <Typography variant="body2" color="#64748b">
+              <Typography variant="body2" color="text.secondary">
                 Authorized by Managing Partner to register High Courts, NCLT, DRT, and Consumer Forums.
               </Typography>
             </Box>
@@ -1144,7 +1148,7 @@ export default function AccountsAdminPage() {
                   setForumToEdit(null);
                   setOpenForumModal(true);
                 }}
-                sx={{ backgroundColor: "#0f2942", fontWeight: 800 }}
+                sx={{ fontWeight: 800 }}
               >
                 Add Forum
               </Button>
@@ -1169,7 +1173,7 @@ export default function AccountsAdminPage() {
 
           <TableContainer component={Paper} elevation={0} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
             <Table sx={{ minWidth: { xs: 650, sm: 750 } }} size="medium">
-              <TableHead sx={{ backgroundColor: "#f1f5f9" }}>
+              <TableHead sx={{ backgroundColor: mode === "light" ? "#f1f5f9" : "#142136" }}>
                 <TableRow>
                   <TableCell>Court / Forum Name</TableCell>
                   <TableCell>Short Code</TableCell>

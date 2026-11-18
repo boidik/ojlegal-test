@@ -85,7 +85,7 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
               width: 40,
               height: 40,
               borderRadius: 2,
-              backgroundColor: "#0f2942",
+              backgroundColor: "primary.main",
               color: "#ffffff",
               display: "flex",
               alignItems: "center",
@@ -96,10 +96,10 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
             <AccountBalanceIcon sx={{ fontSize: 22 }} />
           </Box>
           <Box>
-            <Typography variant="h6" fontWeight={800} color="#0f172a" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+            <Typography variant="h6" fontWeight={800} color="text.primary" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
               {forumToEdit ? "Edit Court / Forum" : "Register New Court / Forum"}
             </Typography>
-            <Typography variant="caption" color="#475569">
+            <Typography variant="caption" color="text.secondary">
               This court/tribunal will be available in the Case Registry dropdown
             </Typography>
           </Box>
@@ -180,7 +180,7 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
           </Grid>
         </DialogContent>
 
-        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, borderTop: "1px solid #e2e8f0", flexDirection: { xs: "column-reverse", sm: "row" }, gap: 1 }}>
+        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, borderTop: "1px solid", borderColor: "divider", flexDirection: { xs: "column-reverse", sm: "row" }, gap: 1 }}>
           <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600, width: { xs: "100%", sm: "auto" } }}>
             Cancel
           </Button>
@@ -191,8 +191,6 @@ export default function ForumDialog({ open, onClose, forumToEdit = null }) {
             sx={{
               fontWeight: 700,
               px: 3,
-              backgroundColor: "#0f2942",
-              "&:hover": { backgroundColor: "#1e3a5f" },
               width: { xs: "100%", sm: "auto" },
             }}
           >

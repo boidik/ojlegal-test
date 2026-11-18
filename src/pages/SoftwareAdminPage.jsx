@@ -66,6 +66,7 @@ import ExpenseDialog from "../components/ExpenseDialog";
 import RoleBadge from "../components/RoleBadge";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
+import { useAppTheme } from "../context/ThemeContext";
 import { PRESET_FAVICONS } from "../services/sampleData";
 import { DEFAULT_PDF_LAYOUT, generateSamplePDF } from "../services/exportService";
 import {
@@ -87,6 +88,7 @@ const COLOR_PRESETS = [
 
 export default function SoftwareAdminPage() {
   const { currentUser, resetPassword, updateLocalRole } = useAuth();
+  const { mode } = useAppTheme();
   const {
     cases,
     categories,
@@ -350,6 +352,43 @@ export default function SoftwareAdminPage() {
   const associatedExpenses = staffToDelete ? expenses.filter(e => e.staffId === staffToDelete.uid) : [];
   const associatedAdvances = staffToDelete ? advances.filter(a => a.staffId === staffToDelete.uid) : [];
 
+  const getTabSx = (tabIndex) => ({
+    fontWeight: 800,
+    fontSize: "0.85rem",
+    borderRadius: 2,
+    mx: 0.4,
+    py: 1,
+    px: 2,
+    color: activeTab === tabIndex
+      ? "#ffffff !important"
+      : (mode === "light" ? "#334155 !important" : "#94a3b8 !important"),
+    backgroundColor: activeTab === tabIndex
+      ? (mode === "light" ? (settings.headerBgColor || "#0f2942") : (settings.headerAccentColor || "#0284c7"))
+      : "transparent",
+    "&:hover": {
+      backgroundColor: activeTab === tabIndex
+        ? undefined
+        : (mode === "light" ? "rgba(15, 23, 42, 0.05)" : "rgba(255, 255, 255, 0.06)"),
+      color: activeTab === tabIndex
+        ? "#ffffff !important"
+        : (mode === "light" ? "#0f172a !important" : "#f8fafc !important"),
+    },
+  });
+
+  const dangerTabSx = {
+    fontWeight: 800,
+    fontSize: "0.85rem",
+    borderRadius: 2,
+    mx: 0.4,
+    py: 1,
+    px: 2,
+    color: activeTab === 9 ? "#ffffff !important" : "#ef4444 !important",
+    backgroundColor: activeTab === 9 ? "#dc2626" : "transparent",
+    "&:hover": {
+      backgroundColor: activeTab === 9 ? "#dc2626" : "rgba(239, 68, 68, 0.12)",
+    },
+  };
+
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 4 }, maxWidth: 1400, mx: "auto" }}>
       {/* Top Page Header */}
@@ -360,7 +399,7 @@ export default function SoftwareAdminPage() {
               width: 44,
               height: 44,
               borderRadius: 2.5,
-              backgroundColor: "#0f2942",
+              backgroundColor: mode === "light" ? (settings.headerBgColor || "#0f2942") : (settings.headerAccentColor || "primary.main"),
               color: "#ffffff",
               display: "flex",
               alignItems: "center",
@@ -375,12 +414,12 @@ export default function SoftwareAdminPage() {
             <Typography
               variant="h4"
               fontWeight={800}
-              color="#0f172a"
+              color="text.primary"
               sx={{ fontSize: { xs: "1.45rem", sm: "1.85rem", md: "2.125rem" } }}
             >
               Software Admin Master Console
             </Typography>
-            <Typography variant="body2" color="#334155" fontWeight={500} sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
+            <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
               Comprehensive administration: manage courts, firm details, categories, case registry, and 1-click user permissions.
             </Typography>
           </Box>
@@ -392,9 +431,10 @@ export default function SoftwareAdminPage() {
         elevation={0}
         sx={{
           mb: 3.5,
-          border: "1px solid #cbd5e1",
+          border: "1px solid",
+          borderColor: "divider",
           borderRadius: 3,
-          backgroundColor: "#f8fafc",
+          backgroundColor: mode === "light" ? "#f8fafc" : "#111c2e",
           p: 0.8,
         }}
       >
@@ -414,164 +454,74 @@ export default function SoftwareAdminPage() {
             icon={<FolderSpecialIcon />}
             iconPosition="start"
             label={`Cases (${cases.length})`}
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 0 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 0 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(0)}
           />
           <Tab
             icon={<AccountBalanceIcon />}
             iconPosition="start"
             label={`Courts / Forums (${forums.length})`}
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 1 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 1 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(1)}
           />
           <Tab
             icon={<CategoryIcon />}
             iconPosition="start"
             label={`Categories (${categories.length})`}
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 2 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 2 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(2)}
           />
           <Tab
             icon={<BusinessIcon />}
             iconPosition="start"
             label="Firm Details"
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 3 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 3 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(3)}
           />
           <Tab
             icon={<PaletteIcon />}
             iconPosition="start"
             label="Branding & Favicon"
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 4 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 4 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(4)}
           />
           <Tab
             icon={<PeopleIcon />}
             iconPosition="start"
             label={`Staff & Access (${users.length})`}
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 5 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 5 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(5)}
           />
           <Tab
             icon={<PictureAsPdfIcon />}
             iconPosition="start"
             label="PDF Report Studio"
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 6 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 6 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(6)}
           />
           <Tab
             icon={<CloudQueueIcon />}
             iconPosition="start"
             label="Firebase Connection"
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 7 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 7 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(7)}
           />
           <Tab
             icon={<ReceiptLongIcon />}
             iconPosition="start"
             label="Master Vouchers"
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 8 ? "#ffffff !important" : "#334155 !important",
-              backgroundColor: activeTab === 8 ? "#0f2942" : "transparent",
-            }}
+            sx={getTabSx(8)}
           />
           <Tab
             icon={<DeleteForeverIcon />}
             iconPosition="start"
             label="System Reset (Danger Zone)"
-            sx={{
-              fontWeight: 800,
-              fontSize: "0.85rem",
-              borderRadius: 2,
-              mx: 0.4,
-              py: 1,
-              px: 2,
-              color: activeTab === 9 ? "#ffffff !important" : "#dc2626 !important",
-              backgroundColor: activeTab === 9 ? "#dc2626" : "transparent",
-            }}
+            sx={dangerTabSx}
           />
         </Tabs>
       </Paper>
 
       {/* ==================== TAB 0: CASES ==================== */}
       {activeTab === 0 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Approved Case Registry
               </Typography>
-              <Typography variant="body2" color="#334155">
+              <Typography variant="body2" color="text.secondary">
                 Staff associates can only record expenses against pre-approved cases registered here.
               </Typography>
             </Box>
@@ -582,7 +532,7 @@ export default function SoftwareAdminPage() {
                 setSelectedCase(null);
                 setOpenCaseModal(true);
               }}
-              sx={{ fontWeight: 800, px: 2.5, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
+              sx={{ fontWeight: 800, px: 2.5, width: { xs: "100%", sm: "auto" } }}
             >
               Register New Case
             </Button>
@@ -595,8 +545,8 @@ export default function SoftwareAdminPage() {
               display: { xs: "block", sm: "none" },
               px: 2.5,
               py: 0.8,
-              color: "#64748b",
-              bgcolor: "#f1f5f9",
+              color: "text.secondary",
+              bgcolor: mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.04)",
               fontStyle: "italic",
             }}
           >
@@ -620,7 +570,7 @@ export default function SoftwareAdminPage() {
                 {cases.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
                         No cases registered in Firestore. Click "Register New Case" to register your first legal matter.
                       </Typography>
                     </TableCell>
@@ -629,23 +579,23 @@ export default function SoftwareAdminPage() {
                   cases.map((c) => (
                     <TableRow key={c.id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={800} color="#0f172a">
+                        <Typography variant="body2" fontWeight={800} color="text.primary">
                           {c.caseNumber}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700} color="#0f172a">
+                        <Typography variant="body2" fontWeight={700} color="text.primary">
                           {c.title}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="#334155">{c.court}</Typography>
+                        <Typography variant="body2" color="text.secondary">{c.court}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="#334155">{c.clientName || "—"}</Typography>
+                        <Typography variant="body2" color="text.secondary">{c.clientName || "—"}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="#334155">{c.leadAttorney || "—"}</Typography>
+                        <Typography variant="body2" color="text.secondary">{c.leadAttorney || "—"}</Typography>
                       </TableCell>
                       <TableCell align="center">
                         <Chip
@@ -654,9 +604,17 @@ export default function SoftwareAdminPage() {
                           sx={{
                             fontWeight: 800,
                             fontSize: "0.7rem",
-                            backgroundColor: c.status === "active" ? "#dcfce7" : "#f1f5f9",
-                            color: c.status === "active" ? "#15803d" : "#64748b",
-                            border: `1px solid ${c.status === "active" ? "#86efac" : "#cbd5e1"}`,
+                            backgroundColor: c.status === "active"
+                              ? (mode === "light" ? "#dcfce7" : "rgba(34, 197, 94, 0.2)")
+                              : (mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.08)"),
+                            color: c.status === "active"
+                              ? (mode === "light" ? "#15803d" : "#86efac")
+                              : (mode === "light" ? "#64748b" : "#94a3b8"),
+                            border: `1px solid ${
+                              c.status === "active"
+                                ? (mode === "light" ? "#86efac" : "rgba(134, 239, 172, 0.3)")
+                                : (mode === "light" ? "#cbd5e1" : "rgba(255, 255, 255, 0.15)")
+                            }`,
                           }}
                         />
                       </TableCell>
@@ -699,13 +657,13 @@ export default function SoftwareAdminPage() {
 
       {/* ==================== TAB 1: COURTS & FORUMS ==================== */}
       {activeTab === 1 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Courts, Tribunals & Judicial Forums
               </Typography>
-              <Typography variant="body2" color="#334155">
+              <Typography variant="body2" color="text.secondary">
                 Courts defined here appear dynamically in the Case Registry dropdown across the system.
               </Typography>
             </Box>
@@ -715,7 +673,7 @@ export default function SoftwareAdminPage() {
                 color="secondary"
                 startIcon={<AutoAwesomeIcon />}
                 onClick={seedStandardForums}
-                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324", width: { xs: "100%", sm: "auto" } }}
+                sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" } }}
               >
                 Seed Standard Legal Courts
               </Button>
@@ -726,7 +684,7 @@ export default function SoftwareAdminPage() {
                   setSelectedForum(null);
                   setOpenForumModal(true);
                 }}
-                sx={{ fontWeight: 800, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
+                sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" } }}
               >
                 Add Court / Forum
               </Button>
@@ -740,8 +698,8 @@ export default function SoftwareAdminPage() {
               display: { xs: "block", sm: "none" },
               px: 2.5,
               py: 0.8,
-              color: "#64748b",
-              bgcolor: "#f1f5f9",
+              color: "text.secondary",
+              bgcolor: mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.04)",
               fontStyle: "italic",
             }}
           >
@@ -763,7 +721,7 @@ export default function SoftwareAdminPage() {
                 {forums.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
                         No courts or tribunals configured yet. Click <strong>Seed Standard Legal Courts</strong> to load the Supreme Court, High Courts, and NCLT, or click <strong>Add Court / Forum</strong>.
                       </Typography>
                     </TableCell>
@@ -772,12 +730,12 @@ export default function SoftwareAdminPage() {
                   forums.map((f) => (
                     <TableRow key={f.id || f.name} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={800} color="#0f172a">
+                        <Typography variant="body2" fontWeight={800} color="text.primary">
                           {f.name}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="#334155">{f.city || "New Delhi"}</Typography>
+                        <Typography variant="body2" color="text.secondary">{f.city || "New Delhi"}</Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -793,7 +751,7 @@ export default function SoftwareAdminPage() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700} color="#64748b">
+                        <Typography variant="body2" fontWeight={700} color="text.secondary">
                           {f.code || f.id || "—"}
                         </Typography>
                       </TableCell>
@@ -836,13 +794,13 @@ export default function SoftwareAdminPage() {
 
       {/* ==================== TAB 2: EXPENSE CATEGORIES ==================== */}
       {activeTab === 2 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Expense Categories & Classification
               </Typography>
-              <Typography variant="body2" color="#334155">
+              <Typography variant="body2" color="text.secondary">
                 Every category can be edited here. Categories classified as 'Legal' or 'Technical' are separated in Boss audits.
               </Typography>
             </Box>
@@ -852,7 +810,7 @@ export default function SoftwareAdminPage() {
                 color="secondary"
                 startIcon={<AutoAwesomeIcon />}
                 onClick={seedStandardCategories}
-                sx={{ fontWeight: 800, borderColor: "#c99738", color: "#9f7324", width: { xs: "100%", sm: "auto" } }}
+                sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" } }}
               >
                 Seed Standard Legal Categories
               </Button>
@@ -863,7 +821,7 @@ export default function SoftwareAdminPage() {
                   setSelectedCategory(null);
                   setOpenCategoryModal(true);
                 }}
-                sx={{ fontWeight: 800, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
+                sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" } }}
               >
                 Add Category
               </Button>
@@ -877,8 +835,8 @@ export default function SoftwareAdminPage() {
               display: { xs: "block", sm: "none" },
               px: 2.5,
               py: 0.8,
-              color: "#64748b",
-              bgcolor: "#f1f5f9",
+              color: "text.secondary",
+              bgcolor: mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.04)",
               fontStyle: "italic",
             }}
           >
@@ -899,7 +857,7 @@ export default function SoftwareAdminPage() {
                 {categories.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
                         No categories found in Firestore. Click <strong>Seed Standard Legal Categories</strong> to auto-populate Court Fees, Counsel Fees, and Forensics, or click <strong>Add Category</strong>.
                       </Typography>
                     </TableCell>
@@ -908,7 +866,7 @@ export default function SoftwareAdminPage() {
                   categories.map((cat) => (
                     <TableRow key={cat.id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={800} color="#0f172a">
+                        <Typography variant="body2" fontWeight={800} color="text.primary">
                           {cat.name}
                         </Typography>
                       </TableCell>
@@ -920,20 +878,23 @@ export default function SoftwareAdminPage() {
                             fontWeight: 800,
                             fontSize: "0.72rem",
                             backgroundColor:
-                              cat.type === "legal" ? "#dbeafe" :
-                              cat.type === "technical" ? "#fef3c7" : "#f1f5f9",
+                              cat.type === "legal" ? (mode === "light" ? "#dbeafe" : "rgba(30, 64, 175, 0.25)") :
+                              cat.type === "technical" ? (mode === "light" ? "#fef3c7" : "rgba(180, 83, 9, 0.25)") :
+                              (mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.08)"),
                             color:
-                              cat.type === "legal" ? "#1e40af" :
-                              cat.type === "technical" ? "#b45309" : "#475569",
+                              cat.type === "legal" ? (mode === "light" ? "#1e40af" : "#93c5fd") :
+                              cat.type === "technical" ? (mode === "light" ? "#b45309" : "#fde68a") :
+                              (mode === "light" ? "#475569" : "#cbd5e1"),
                             border: `1px solid ${
-                              cat.type === "legal" ? "#93c5fd" :
-                              cat.type === "technical" ? "#fde68a" : "#cbd5e1"
+                              cat.type === "legal" ? (mode === "light" ? "#93c5fd" : "rgba(147, 197, 253, 0.3)") :
+                              cat.type === "technical" ? (mode === "light" ? "#fde68a" : "rgba(253, 230, 138, 0.3)") :
+                              (mode === "light" ? "#cbd5e1" : "rgba(255, 255, 255, 0.15)")
                             }`,
                           }}
                         />
                       </TableCell>
                       <TableCell sx={{ maxWidth: 450 }}>
-                        <Typography variant="body2" color="#334155">
+                        <Typography variant="body2" color="text.secondary">
                           {cat.description || "No specific guidelines provided."}
                         </Typography>
                       </TableCell>
@@ -976,13 +937,13 @@ export default function SoftwareAdminPage() {
 
       {/* ==================== TAB 3: OFFICIAL LAW FIRM DETAILS ==================== */}
       {activeTab === 3 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Official Law Firm Identity & Practice Details
               </Typography>
-              <Typography variant="body2" color="#334155">
+              <Typography variant="body2" color="text.secondary">
                 These official parameters appear on client disbursement statements, voucher PDFs, certified Excel audits, and system reports.
               </Typography>
             </Box>
@@ -1084,7 +1045,7 @@ export default function SoftwareAdminPage() {
                 {/* Report Signatures & Disclaimers */}
                 <Grid item xs={12}>
                   <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mt: 1, mb: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={800} color="text.primary" sx={{ mt: 1, mb: 2 }}>
                     Official Report Signatures & Audit Footers
                   </Typography>
                 </Grid>
@@ -1147,18 +1108,19 @@ export default function SoftwareAdminPage() {
                     elevation={0}
                     sx={{
                       p: 2.5,
-                      border: "1px solid #cbd5e1",
+                      border: "1px solid",
+                      borderColor: "divider",
                       borderRadius: 2,
-                      backgroundColor: "#f8fafc",
+                      backgroundColor: mode === "light" ? "#f8fafc" : "#16253b",
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                       <AdminPanelSettingsIcon color="primary" />
-                      <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                      <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                         Boss Delegation & Operational Authority (Accounts Admin Permissions)
                       </Typography>
                     </Box>
-                    <Typography variant="body2" color="#64748b" sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Empower Accounts Admins (Office Manager / Chief of Accounts) to register new litigation matters and courts directly when the Managing Partner is engaged in court hearings or unavailable.
                     </Typography>
 
@@ -1168,9 +1130,12 @@ export default function SoftwareAdminPage() {
                           elevation={0}
                           sx={{
                             p: 2,
-                            border: "1px solid #e2e8f0",
+                            border: "1px solid",
+                            borderColor: "divider",
                             borderRadius: 1.5,
-                            backgroundColor: firmForm.allowAccountsAdminCases ? "#f0fdf4" : "#ffffff",
+                            backgroundColor: firmForm.allowAccountsAdminCases
+                              ? (mode === "light" ? "#f0fdf4" : "rgba(34, 197, 94, 0.12)")
+                              : (mode === "light" ? "#ffffff" : "#0f1b2d"),
                           }}
                         >
                           <FormControlLabel
@@ -1185,7 +1150,7 @@ export default function SoftwareAdminPage() {
                             }
                             label={
                               <Box>
-                                <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+                                <Typography variant="subtitle2" fontWeight={800} color="text.primary">
                                   Delegate Case Registry Entry
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
@@ -1202,9 +1167,12 @@ export default function SoftwareAdminPage() {
                           elevation={0}
                           sx={{
                             p: 2,
-                            border: "1px solid #e2e8f0",
+                            border: "1px solid",
+                            borderColor: "divider",
                             borderRadius: 1.5,
-                            backgroundColor: firmForm.allowAccountsAdminForums ? "#f0fdf4" : "#ffffff",
+                            backgroundColor: firmForm.allowAccountsAdminForums
+                              ? (mode === "light" ? "#f0fdf4" : "rgba(34, 197, 94, 0.12)")
+                              : (mode === "light" ? "#ffffff" : "#0f1b2d"),
                           }}
                         >
                           <FormControlLabel
@@ -1219,7 +1187,7 @@ export default function SoftwareAdminPage() {
                             }
                             label={
                               <Box>
-                                <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+                                <Typography variant="subtitle2" fontWeight={800} color="text.primary">
                                   Delegate Courts & Forums Entry
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
@@ -1244,7 +1212,6 @@ export default function SoftwareAdminPage() {
                       fontWeight: 800,
                       py: 1.3,
                       px: 4,
-                      backgroundColor: "#0f2942",
                       boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
                       width: { xs: "100%", sm: "auto" },
                     }}
@@ -1260,13 +1227,13 @@ export default function SoftwareAdminPage() {
 
       {/* ==================== TAB 4: BRANDING, HEADER & FAVICON ==================== */}
       {activeTab === 4 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Branding, Top Header & Favicon Customization
               </Typography>
-              <Typography variant="body2" color="#334155">
+              <Typography variant="body2" color="text.secondary">
                 Customize website favicon, navigation bar color theme, brand title, and official logo graphics.
               </Typography>
             </Box>
@@ -1275,8 +1242,8 @@ export default function SoftwareAdminPage() {
               <Grid container spacing={3}>
                 {/* Favicon Settings */}
                 <Grid item xs={12}>
-                  <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #cbd5e1", borderRadius: 2, backgroundColor: "#f8fafc" }}>
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mb: 1.5 }}>
+                  <Paper elevation={0} sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, backgroundColor: mode === "light" ? "#f8fafc" : "#16253b" }}>
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary" sx={{ mb: 1.5 }}>
                       Website Favicon (Browser Tab Icon)
                     </Typography>
                     <Grid container spacing={2}>
@@ -1315,7 +1282,7 @@ export default function SoftwareAdminPage() {
 
                       <Grid item xs={12}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 0.5 }}>
-                          <Typography variant="caption" fontWeight={700} color="#334155">
+                          <Typography variant="caption" fontWeight={700} color="text.secondary">
                             Active Favicon Preview:
                           </Typography>
                           <Box
@@ -1326,7 +1293,7 @@ export default function SoftwareAdminPage() {
                                 : PRESET_FAVICONS[brandForm.faviconType] || PRESET_FAVICONS.scales
                             }
                             alt="Favicon preview"
-                            sx={{ width: 28, height: 28, borderRadius: 1, border: "1px solid #cbd5e1" }}
+                            sx={{ width: 28, height: 28, borderRadius: 1, border: "1px solid", borderColor: "divider" }}
                           />
                         </Box>
                       </Grid>
@@ -1336,8 +1303,8 @@ export default function SoftwareAdminPage() {
 
                 {/* Header Navbar Theme */}
                 <Grid item xs={12}>
-                  <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #cbd5e1", borderRadius: 2, backgroundColor: "#f8fafc" }}>
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mb: 1.5 }}>
+                  <Paper elevation={0} sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, backgroundColor: mode === "light" ? "#f8fafc" : "#16253b" }}>
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary" sx={{ mb: 1.5 }}>
                       Header Background & Logo Customization
                     </Typography>
 
@@ -1383,7 +1350,7 @@ export default function SoftwareAdminPage() {
 
                       {/* Header Color Presets */}
                       <Grid item xs={12}>
-                        <Typography variant="caption" fontWeight={800} color="#334155" sx={{ display: "block", mb: 1 }}>
+                        <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ display: "block", mb: 1 }}>
                           HEADER BACKGROUND PRESETS:
                         </Typography>
                         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
@@ -1395,7 +1362,7 @@ export default function SoftwareAdminPage() {
                               onClick={() => setBrandForm({ ...brandForm, headerBgColor: p.hex })}
                               sx={{
                                 backgroundColor: brandForm.headerBgColor === p.hex ? p.hex : "transparent",
-                                color: brandForm.headerBgColor === p.hex ? "#fff" : "#0f172a",
+                                color: brandForm.headerBgColor === p.hex ? "#fff" : "text.primary",
                                 borderColor: p.hex,
                                 fontWeight: 700,
                                 fontSize: "0.78rem",
@@ -1441,7 +1408,6 @@ export default function SoftwareAdminPage() {
                       fontWeight: 800,
                       py: 1.3,
                       px: 4,
-                      backgroundColor: "#0f2942",
                       width: { xs: "100%", sm: "auto" },
                     }}
                   >
@@ -1456,15 +1422,15 @@ export default function SoftwareAdminPage() {
 
       {/* ==================== TAB 5: STAFF DIRECTORY & 1-CLICK ACCESS CONTROL ==================== */}
       {activeTab === 5 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ p: 2.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Staff Directory & 1-Click Role Access Control
               </Typography>
               <Chip label="NO PASSWORDS REQUIRED" size="small" color="success" sx={{ fontWeight: 800, fontSize: "0.68rem" }} />
             </Box>
-            <Typography variant="body2" color="#334155" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               As the Software Admin, you possess full sovereignty to assign staff access, Accounts Admin (Boss) access, or Software Admin access directly from the dropdown or quick action buttons below.
             </Typography>
           </Box>
@@ -1476,8 +1442,8 @@ export default function SoftwareAdminPage() {
               display: { xs: "block", sm: "none" },
               px: 2.5,
               py: 0.8,
-              color: "#64748b",
-              bgcolor: "#f1f5f9",
+              color: "text.secondary",
+              bgcolor: mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.04)",
               fontStyle: "italic",
             }}
           >
@@ -1499,7 +1465,7 @@ export default function SoftwareAdminPage() {
                 {users.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
                         No registered users yet. Staff accounts appear here automatically upon Google or Email login.
                       </Typography>
                     </TableCell>
@@ -1508,16 +1474,16 @@ export default function SoftwareAdminPage() {
                   users.map((u) => (
                     <TableRow key={u.uid} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={800} color="#0f172a">
+                        <Typography variant="body2" fontWeight={800} color="text.primary">
                           {u.displayName}
                         </Typography>
-                        <Typography variant="caption" color="#64748b" sx={{ fontSize: "0.7rem" }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
                           UID: {u.uid}
                         </Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2" fontWeight={600} color="#0f172a">
+                        <Typography variant="body2" fontWeight={600} color="text.primary">
                           {u.email}
                         </Typography>
                       </TableCell>
@@ -1538,11 +1504,13 @@ export default function SoftwareAdminPage() {
                                 fontSize: "0.8rem",
                                 borderRadius: 1.5,
                                 backgroundColor:
-                                  u.role === "software_admin" ? "#f3e8ff" :
-                                  u.role === "accounts_admin" ? "#e0f2fe" : "#f1f5f9",
+                                  u.role === "software_admin" ? (mode === "light" ? "#f3e8ff" : "rgba(168, 85, 247, 0.2)") :
+                                  u.role === "accounts_admin" ? (mode === "light" ? "#e0f2fe" : "rgba(14, 165, 233, 0.2)") :
+                                  (mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.08)"),
                                 color:
-                                  u.role === "software_admin" ? "#7e22ce" :
-                                  u.role === "accounts_admin" ? "#0369a1" : "#334155",
+                                  u.role === "software_admin" ? (mode === "light" ? "#7e22ce" : "#d8b4fe") :
+                                  u.role === "accounts_admin" ? (mode === "light" ? "#0369a1" : "#7dd3fc") :
+                                  (mode === "light" ? "#334155" : "#f1f5f9"),
                               }}
                             >
                               <MenuItem value="staff" sx={{ fontWeight: 700 }}>
@@ -1594,7 +1562,7 @@ export default function SoftwareAdminPage() {
                               size="small"
                               color="primary"
                               onClick={() => handleResetUserPassword(u.email)}
-                              sx={{ border: "1px solid #cbd5e1", borderRadius: 1.5 }}
+                              sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}
                             >
                               <LockResetIcon fontSize="small" />
                             </IconButton>
@@ -1603,7 +1571,7 @@ export default function SoftwareAdminPage() {
                           {(u.email || "").toLowerCase() === "advocate@boidikghosh.in" || u.uid === currentUser?.uid ? (
                             <Tooltip title="Primary Master Software Admin cannot be deleted">
                               <span>
-                                <IconButton size="small" disabled sx={{ border: "1px solid #e2e8f0", borderRadius: 1.5 }}>
+                                <IconButton size="small" disabled sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
                               </span>
@@ -1661,7 +1629,7 @@ export default function SoftwareAdminPage() {
       {activeTab === 6 && (
         <Box>
           {/* Header Action Bar */}
-          <Card sx={{ mb: 3, border: "1px solid #cbd5e1", borderRadius: 2 }}>
+          <Card sx={{ mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
             <Box
               sx={{
                 p: { xs: 2, sm: 3 },
@@ -1670,18 +1638,19 @@ export default function SoftwareAdminPage() {
                 justifyContent: "space-between",
                 alignItems: { xs: "flex-start", md: "center" },
                 gap: 2,
-                backgroundColor: "#f8fafc",
-                borderBottom: "1px solid #e2e8f0",
+                backgroundColor: mode === "light" ? "#f8fafc" : "#16253b",
+                borderBottom: "1px solid",
+                borderColor: "divider",
               }}
             >
               <Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <PictureAsPdfIcon sx={{ color: "#0f2942", fontSize: 28 }} />
-                  <Typography variant="h6" fontWeight={800} color="#0f172a">
+                  <PictureAsPdfIcon sx={{ color: mode === "light" ? "#0f2942" : "secondary.main", fontSize: 28 }} />
+                  <Typography variant="h6" fontWeight={800} color="text.primary">
                     PDF Report Studio & Pixel Layout Engine
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="#64748b" sx={{ mt: 0.5 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   Fine-tune every margin, color hex, column toggle, table font size, and signatory block for generated audit statements.
                 </Typography>
               </Box>
@@ -1717,7 +1686,6 @@ export default function SoftwareAdminPage() {
                   onClick={handleSavePdfLayout}
                   sx={{
                     fontWeight: 800,
-                    backgroundColor: "#0f2942",
                     flex: { xs: "1 1 auto", sm: "none" },
                   }}
                 >
@@ -1731,11 +1699,11 @@ export default function SoftwareAdminPage() {
             {/* LEFT COLUMN: Controls Studio */}
             <Grid item xs={12} lg={7}>
               {/* SECTION 1: Page Geometry & Paper Dimensions */}
-              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+              <Card sx={{ mb: 3, border: "1px solid", borderColor: "divider" }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                     <LayersIcon color="primary" />
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                       1. Page Geometry & Paper Format
                     </Typography>
                   </Box>
@@ -1771,7 +1739,7 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" fontWeight={700} color="#334155" gutterBottom>
+                      <Typography variant="body2" fontWeight={700} color="text.secondary" gutterBottom>
                         Printable Page Margin: {pdfForm.marginMm} mm
                       </Typography>
                       <Slider
@@ -1790,7 +1758,7 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" fontWeight={700} color="#334155" gutterBottom>
+                      <Typography variant="body2" fontWeight={700} color="text.secondary" gutterBottom>
                         Header Banner Height: {pdfForm.bannerHeight} mm
                       </Typography>
                       <Slider
@@ -1812,11 +1780,11 @@ export default function SoftwareAdminPage() {
               </Card>
 
               {/* SECTION 2: Visual Identity & Color Theme */}
-              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+              <Card sx={{ mb: 3, border: "1px solid", borderColor: "divider" }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                     <PaletteIcon color="primary" />
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                       2. Visual Identity & Color Palette
                     </Typography>
                   </Box>
@@ -1933,11 +1901,11 @@ export default function SoftwareAdminPage() {
               </Card>
 
               {/* SECTION 3: Titles, Headers & Summary Cards */}
-              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+              <Card sx={{ mb: 3, border: "1px solid", borderColor: "divider" }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                     <VisibilityIcon color="primary" />
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                       3. Document Header Titles & Visibility Toggles
                     </Typography>
                   </Box>
@@ -1955,7 +1923,7 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12} sm={4}>
-                      <Typography variant="caption" fontWeight={700} color="#334155">
+                      <Typography variant="caption" fontWeight={700} color="text.secondary">
                         Header Font Size: {pdfForm.headerTitleFontSize} pt
                       </Typography>
                       <Slider
@@ -1980,7 +1948,7 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12} sm={4}>
-                      <Typography variant="caption" fontWeight={700} color="#334155">
+                      <Typography variant="caption" fontWeight={700} color="text.secondary">
                         Statement Font Size: {pdfForm.statementTitleFontSize} pt
                       </Typography>
                       <Slider
@@ -2045,11 +2013,11 @@ export default function SoftwareAdminPage() {
               </Card>
 
               {/* SECTION 4: Table Styling & Individual Column Visibility */}
-              <Card sx={{ mb: 3, border: "1px solid #cbd5e1" }}>
+              <Card sx={{ mb: 3, border: "1px solid", borderColor: "divider" }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                     <ReceiptLongIcon color="primary" />
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                       4. Table Geometry & Column Visibility (Dot-by-Dot Control)
                     </Typography>
                   </Box>
@@ -2071,7 +2039,7 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12} sm={4}>
-                      <Typography variant="caption" fontWeight={700} color="#334155">
+                      <Typography variant="caption" fontWeight={700} color="text.secondary">
                         Table Font Size: {pdfForm.tableFontSize} pt
                       </Typography>
                       <Slider
@@ -2085,7 +2053,7 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12} sm={4}>
-                      <Typography variant="caption" fontWeight={700} color="#334155">
+                      <Typography variant="caption" fontWeight={700} color="text.secondary">
                         Cell Padding: {pdfForm.tableCellPadding} mm
                       </Typography>
                       <Slider
@@ -2099,10 +2067,10 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" fontWeight={800} color="#0f172a" sx={{ mb: 1 }}>
+                      <Typography variant="subtitle2" fontWeight={800} color="text.primary" sx={{ mb: 1 }}>
                         Table Columns to Print:
                       </Typography>
-                      <Paper elevation={0} sx={{ p: 2, border: "1px solid #e2e8f0", borderRadius: 1.5, backgroundColor: "#f8fafc" }}>
+                      <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, backgroundColor: mode === "light" ? "#f8fafc" : "#16253b" }}>
                         <Grid container spacing={1}>
                           <Grid item xs={6} sm={3}>
                             <FormControlLabel
@@ -2215,11 +2183,11 @@ export default function SoftwareAdminPage() {
               </Card>
 
               {/* SECTION 5: Legal Disclaimer, Signatures & Footer */}
-              <Card sx={{ border: "1px solid #cbd5e1" }}>
+              <Card sx={{ border: "1px solid", borderColor: "divider" }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                     <AdminPanelSettingsIcon color="primary" />
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                       5. Legal Disclaimer, Signatory Blocks & Footer
                     </Typography>
                   </Box>
@@ -2250,7 +2218,7 @@ export default function SoftwareAdminPage() {
                     </Grid>
 
                     <Grid item xs={12} sm={4}>
-                      <Typography variant="caption" fontWeight={700} color="#334155">
+                      <Typography variant="caption" fontWeight={700} color="text.secondary">
                         Disclaimer Size: {pdfForm.disclaimerFontSize} pt
                       </Typography>
                       <Slider
@@ -2366,8 +2334,8 @@ export default function SoftwareAdminPage() {
             {/* RIGHT COLUMN: Live Interactive Visual Sheet Preview */}
             <Grid item xs={12} lg={5}>
               <Box sx={{ position: { lg: "sticky" }, top: 24 }}>
-                <Card sx={{ border: "2px solid #cbd5e1", borderRadius: 2, overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
-                  <Box sx={{ p: 2, bgcolor: "#0f2942", color: "#ffffff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Card sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}>
+                  <Box sx={{ p: 2, bgcolor: mode === "light" ? (settings.headerBgColor || "#0f2942") : "#142136", color: "#ffffff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <VisibilityIcon sx={{ fontSize: 18, color: "#c99738" }} />
                       <Typography variant="subtitle2" fontWeight={800}>
@@ -2603,13 +2571,13 @@ export default function SoftwareAdminPage() {
 
       {/* ==================== TAB 7: FIREBASE CONFIGURATION ==================== */}
       {activeTab === 7 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" fontWeight={800} color="#0f172a">
+              <Typography variant="h6" fontWeight={800} color="text.primary">
                 Google Cloud Firestore & Firebase Auth Settings
               </Typography>
-              <Typography variant="body2" color="#334155">
+              <Typography variant="body2" color="text.secondary">
                 Target Project: <strong>ojlegal-test</strong>. Connects live data across all users and devices.
               </Typography>
             </Box>
@@ -2691,7 +2659,7 @@ export default function SoftwareAdminPage() {
                 <Button
                   variant="contained"
                   onClick={handleSaveFirebase}
-                  sx={{ fontWeight: 800, backgroundColor: "#0f2942", width: { xs: "100%", sm: "auto" } }}
+                  sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" } }}
                 >
                   Save Firebase Credentials
                 </Button>
@@ -2715,10 +2683,10 @@ export default function SoftwareAdminPage() {
                 <Divider sx={{ mb: 2 }} />
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
                   <Box>
-                    <Typography variant="subtitle1" fontWeight={800} color="#0f172a">
+                    <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                       Firebase Console Firestore Security Rules
                     </Typography>
-                    <Typography variant="caption" color="#334155" sx={{ display: "block" }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                       Paste these rules into <strong>Firebase Console &gt; Firestore Database &gt; Rules tab</strong> to enable delete and edit permissions for <code>advocate@boidikghosh.in</code> and administrators.
                     </Typography>
                   </Box>
@@ -2831,12 +2799,12 @@ service cloud.firestore {
 
       {/* ==================== TAB 8: MASTER VOUCHER EDITOR ==================== */}
       {activeTab === 8 && (
-        <Card sx={{ border: "1px solid #cbd5e1" }}>
+        <Card sx={{ border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ p: 2.5 }}>
-            <Typography variant="h6" fontWeight={800} color="#0f172a">
+            <Typography variant="h6" fontWeight={800} color="text.primary">
               Master Expense & Voucher Oversight
             </Typography>
-            <Typography variant="body2" color="#334155">
+            <Typography variant="body2" color="text.secondary">
               As Software Admin, you possess master override authority to modify or delete any expense entry across all staff and cases.
             </Typography>
           </Box>
@@ -2848,8 +2816,8 @@ service cloud.firestore {
               display: { xs: "block", sm: "none" },
               px: 2.5,
               py: 0.8,
-              color: "#64748b",
-              bgcolor: "#f1f5f9",
+              color: "text.secondary",
+              bgcolor: mode === "light" ? "#f1f5f9" : "rgba(255, 255, 255, 0.04)",
               fontStyle: "italic",
             }}
           >
@@ -2872,7 +2840,7 @@ service cloud.firestore {
                 {expenses.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                      <Typography variant="body2" color="#64748b" fontWeight={600}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
                         No expense vouchers recorded in Firestore yet.
                       </Typography>
                     </TableCell>
@@ -2881,24 +2849,24 @@ service cloud.firestore {
                   expenses.map((exp) => (
                     <TableRow key={exp.id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={800} color="#0f172a">{exp.id}</Typography>
-                        <Typography variant="caption" color="#64748b">{exp.date}</Typography>
+                        <Typography variant="body2" fontWeight={800} color="text.primary">{exp.id}</Typography>
+                        <Typography variant="caption" color="text.secondary">{exp.date}</Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700} color="#0f172a">{exp.caseTitle}</Typography>
+                        <Typography variant="body2" fontWeight={700} color="text.primary">{exp.caseTitle}</Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2" color="#334155">{exp.name}</Typography>
+                        <Typography variant="body2" color="text.secondary">{exp.name}</Typography>
                       </TableCell>
 
                       <TableCell>
-                        <Typography variant="body2" color="#334155">{exp.staffName}</Typography>
+                        <Typography variant="body2" color="text.secondary">{exp.staffName}</Typography>
                       </TableCell>
 
                       <TableCell align="right">
-                        <Typography variant="body2" fontWeight={800} color="#0f172a">
+                        <Typography variant="body2" fontWeight={800} color="text.primary">
                           {settings.currencySymbol || "₹"} {Number(exp.amount).toLocaleString()}
                         </Typography>
                       </TableCell>
@@ -2984,45 +2952,45 @@ service cloud.firestore {
             </Alert>
 
             {/* Inventory Breakdown */}
-            <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight={800} color="text.primary" sx={{ mb: 2 }}>
               Current Database Records to be Wiped:
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid item xs={6} sm={4} md={2}>
-                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: mode === "light" ? "#f8fafc" : "#16253b", textAlign: "center" }}>
                   <Typography variant="caption" color="text.secondary" fontWeight={700}>CASES</Typography>
-                  <Typography variant="h5" fontWeight={800} color="#0f172a">{cases.length}</Typography>
+                  <Typography variant="h5" fontWeight={800} color="text.primary">{cases.length}</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6} sm={4} md={2}>
-                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: mode === "light" ? "#f8fafc" : "#16253b", textAlign: "center" }}>
                   <Typography variant="caption" color="text.secondary" fontWeight={700}>EXPENSES</Typography>
-                  <Typography variant="h5" fontWeight={800} color="#0f172a">{expenses.length}</Typography>
+                  <Typography variant="h5" fontWeight={800} color="text.primary">{expenses.length}</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6} sm={4} md={2}>
-                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: mode === "light" ? "#f8fafc" : "#16253b", textAlign: "center" }}>
                   <Typography variant="caption" color="text.secondary" fontWeight={700}>ADVANCES</Typography>
-                  <Typography variant="h5" fontWeight={800} color="#0f172a">{advances.length}</Typography>
+                  <Typography variant="h5" fontWeight={800} color="text.primary">{advances.length}</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6} sm={4} md={2}>
-                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: mode === "light" ? "#f8fafc" : "#16253b", textAlign: "center" }}>
                   <Typography variant="caption" color="text.secondary" fontWeight={700}>COURTS</Typography>
-                  <Typography variant="h5" fontWeight={800} color="#0f172a">{forums.length}</Typography>
+                  <Typography variant="h5" fontWeight={800} color="text.primary">{forums.length}</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6} sm={4} md={2}>
-                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: mode === "light" ? "#f8fafc" : "#16253b", textAlign: "center" }}>
                   <Typography variant="caption" color="text.secondary" fontWeight={700}>CATEGORIES</Typography>
-                  <Typography variant="h5" fontWeight={800} color="#0f172a">{categories.length}</Typography>
+                  <Typography variant="h5" fontWeight={800} color="text.primary">{categories.length}</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6} sm={4} md={2}>
-                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: mode === "light" ? "#f8fafc" : "#16253b", textAlign: "center" }}>
                   <Typography variant="caption" color="text.secondary" fontWeight={700}>USERS</Typography>
-                  <Typography variant="h5" fontWeight={800} color="#0f172a">{users.length}</Typography>
+                  <Typography variant="h5" fontWeight={800} color="text.primary">{users.length}</Typography>
                 </Paper>
               </Grid>
             </Grid>
@@ -3032,7 +3000,7 @@ service cloud.firestore {
                 p: { xs: 2, sm: 2.5 },
                 border: "1px dashed #ef4444",
                 borderRadius: 2.5,
-                bgcolor: "#fff5f5",
+                bgcolor: mode === "light" ? "#fff5f5" : "rgba(239, 68, 68, 0.12)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -3041,10 +3009,10 @@ service cloud.firestore {
               }}
             >
               <Box>
-                <Typography variant="subtitle1" fontWeight={800} color="#991b1b">
+                <Typography variant="subtitle1" fontWeight={800} color={mode === "light" ? "#991b1b" : "#fca5a5"}>
                   Nuclear Master Purge
                 </Typography>
-                <Typography variant="body2" color="#7f1d1d" sx={{ fontSize: "0.85rem" }}>
+                <Typography variant="body2" color={mode === "light" ? "#7f1d1d" : "#fecaca"} sx={{ fontSize: "0.85rem" }}>
                   Wipe all tables, clear test data, and reset database to pristine initial state.
                 </Typography>
               </Box>
@@ -3098,7 +3066,7 @@ service cloud.firestore {
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1, px: { xs: 2, sm: 3 } }}>
           <DeleteIcon color="error" />
           <Box>
-            <Typography variant="h6" fontWeight={800} color="#0f172a" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+            <Typography variant="h6" fontWeight={800} color="text.primary" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
               Delete Staff Member
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -3112,8 +3080,8 @@ service cloud.firestore {
           {staffToDelete && (
             <>
               {/* Staff Member Info Banner */}
-              <Paper elevation={0} sx={{ p: 2, mb: 2.5, bgcolor: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: 2 }}>
-                <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+              <Paper elevation={0} sx={{ p: 2, mb: 2.5, bgcolor: mode === "light" ? "#f8fafc" : "#16253b", border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                <Typography variant="subtitle2" fontWeight={800} color="text.primary">
                   {staffToDelete.displayName || "Staff Member"}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
@@ -3136,7 +3104,7 @@ service cloud.firestore {
                 </Box>
               </Paper>
 
-              <Typography variant="subtitle2" fontWeight={800} color="#0f172a" sx={{ mb: 1.5 }}>
+              <Typography variant="subtitle2" fontWeight={800} color="text.primary" sx={{ mb: 1.5 }}>
                 Choose Deletion Mode:
               </Typography>
 
@@ -3153,10 +3121,12 @@ service cloud.firestore {
                       p: 2,
                       mb: 1.5,
                       border: "2px solid",
-                      borderColor: deleteStaffOption === "keep_data" ? "#2563eb" : "#cbd5e1",
+                      borderColor: deleteStaffOption === "keep_data" ? "#2563eb" : "divider",
                       borderRadius: 2,
                       cursor: "pointer",
-                      bgcolor: deleteStaffOption === "keep_data" ? "#eff6ff" : "#ffffff",
+                      bgcolor: deleteStaffOption === "keep_data"
+                        ? (mode === "light" ? "#eff6ff" : "rgba(37, 99, 235, 0.15)")
+                        : (mode === "light" ? "#ffffff" : "#0f1b2d"),
                       transition: "all 0.2s",
                     }}
                   >
@@ -3165,10 +3135,10 @@ service cloud.firestore {
                       control={<Radio color="primary" />}
                       label={
                         <Box>
-                          <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+                          <Typography variant="subtitle2" fontWeight={800} color="text.primary">
                             Delete Staff Member ONLY (Without deleting associated data)
                           </Typography>
-                          <Typography variant="caption" color="#475569" sx={{ display: "block", mt: 0.3 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.3 }}>
                             Recommended for legal audit integrity. Removes the staff login and account, but keeps all {associatedExpenses.length} expense vouchers and {associatedAdvances.length} advances in the case ledger under their name.
                           </Typography>
                         </Box>
@@ -3184,10 +3154,12 @@ service cloud.firestore {
                     sx={{
                       p: 2,
                       border: "2px solid",
-                      borderColor: deleteStaffOption === "delete_data" ? "#dc2626" : "#cbd5e1",
+                      borderColor: deleteStaffOption === "delete_data" ? "#dc2626" : "divider",
                       borderRadius: 2,
                       cursor: "pointer",
-                      bgcolor: deleteStaffOption === "delete_data" ? "#fef2f2" : "#ffffff",
+                      bgcolor: deleteStaffOption === "delete_data"
+                        ? (mode === "light" ? "#fef2f2" : "rgba(220, 38, 38, 0.15)")
+                        : (mode === "light" ? "#ffffff" : "#0f1b2d"),
                       transition: "all 0.2s",
                     }}
                   >
@@ -3199,7 +3171,7 @@ service cloud.firestore {
                           <Typography variant="subtitle2" fontWeight={800} color="#dc2626">
                             Delete Staff Member AND Delete Associated Data
                           </Typography>
-                          <Typography variant="caption" color="#475569" sx={{ display: "block", mt: 0.3 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.3 }}>
                             Destructive action. Permanently deletes this staff member's account AND wipes all {associatedExpenses.length} expense vouchers and {associatedAdvances.length} advance floats logged by this associate.
                           </Typography>
                         </Box>
@@ -3242,13 +3214,13 @@ service cloud.firestore {
         fullWidth
         sx={{ "& .MuiDialog-paper": { m: { xs: 1.5, sm: 3 } } }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1, px: { xs: 2, sm: 3 }, bgcolor: "#fef2f2" }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1, px: { xs: 2, sm: 3 }, bgcolor: mode === "light" ? "#fef2f2" : "rgba(220, 38, 38, 0.15)" }}>
           <WarningAmberIcon color="error" sx={{ fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" fontWeight={800} color="#991b1b" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+            <Typography variant="h6" fontWeight={800} color={mode === "light" ? "#991b1b" : "#fca5a5"} sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
               Confirm Nuclear Wipe of Entire Database
             </Typography>
-            <Typography variant="caption" color="#7f1d1d">
+            <Typography variant="caption" color={mode === "light" ? "#7f1d1d" : "#fecaca"}>
               This operation will permanently delete all records across all collections
             </Typography>
           </Box>
@@ -3256,11 +3228,11 @@ service cloud.firestore {
         <Divider />
 
         <DialogContent sx={{ pt: 3, px: { xs: 2, sm: 3 } }}>
-          <Typography variant="body2" color="#334155" sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             You are about to permanently wipe <strong>all data</strong> from the Google Cloud Firestore database:
           </Typography>
 
-          <Box component="ul" sx={{ pl: 2.5, mb: 2.5, color: "#475569", fontSize: "0.85rem", lineHeight: 1.7 }}>
+          <Box component="ul" sx={{ pl: 2.5, mb: 2.5, color: "text.secondary", fontSize: "0.85rem", lineHeight: 1.7 }}>
             <li><strong>{cases.length} Cases</strong> in the case registry</li>
             <li><strong>{expenses.length} Expense Vouchers</strong> across all associates</li>
             <li><strong>{advances.length} Staff Advances</strong> & float histories</li>
@@ -3270,7 +3242,7 @@ service cloud.firestore {
             <li>Official firm branding & settings reset to standard defaults</li>
           </Box>
 
-          <Typography variant="body2" fontWeight={700} color="#0f172a" sx={{ mb: 1 }}>
+          <Typography variant="body2" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
             To confirm, type <strong style={{ color: "#dc2626" }}>DELETE ALL DATA</strong> in uppercase below:
           </Typography>
 

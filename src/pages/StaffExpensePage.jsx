@@ -36,10 +36,12 @@ import StatCard from "../components/StatCard";
 import ExpenseDialog from "../components/ExpenseDialog";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 export default function StaffExpensePage() {
   const { currentUser } = useAuth();
   const { expenses, advances, cases, settings, deleteExpense, refreshData, showNotification } = useApp();
+  const { mode } = useAppTheme();
 
   const currency = settings.currencySymbol || "₹";
 
@@ -175,7 +177,6 @@ export default function StaffExpensePage() {
               px: 2.5,
               fontWeight: 800,
               fontSize: "0.85rem",
-              borderColor: "#0f2942",
               flex: { xs: "1 1 auto", sm: "none" },
             }}
           >
@@ -195,8 +196,11 @@ export default function StaffExpensePage() {
               px: 3,
               fontSize: "0.95rem",
               fontWeight: 800,
-              background: "linear-gradient(135deg, #0f2942 0%, #1e40af 100%)",
-              boxShadow: "0 4px 14px rgba(15, 41, 66, 0.25)",
+              background: mode === "light"
+                ? "linear-gradient(135deg, #0f2942 0%, #1e40af 100%)"
+                : "linear-gradient(135deg, #c99738 0%, #b28124 100%)",
+              color: mode === "light" ? "#ffffff" : "#081320",
+              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.25)",
               whiteSpace: "nowrap",
               flex: { xs: "1 1 auto", sm: "none" },
             }}
@@ -255,7 +259,7 @@ export default function StaffExpensePage() {
 
       {/* Active Advance Float Strip (If staff has active advances) */}
       {myAdvances.length > 0 && (
-        <Card sx={{ mb: 4, border: "1px solid #e2e8f0" }}>
+        <Card sx={{ mb: 4, border: "1px solid", borderColor: "divider" }}>
           <CardContent sx={{ p: 2.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
               <AccountBalanceWalletIcon sx={{ color: "#c99738" }} />
@@ -282,11 +286,13 @@ export default function StaffExpensePage() {
                         borderRadius: 2,
                         border: "1px solid",
                         borderColor: !isSettled ? "#c99738" : "divider",
-                        backgroundColor: !isSettled ? "rgba(201, 151, 56, 0.05)" : "background.default",
+                        backgroundColor: !isSettled
+                          ? (mode === "light" ? "rgba(201, 151, 56, 0.05)" : "rgba(201, 151, 56, 0.12)")
+                          : "background.paper",
                       }}
                     >
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography variant="subtitle2" fontWeight={700}>
+                        <Typography variant="subtitle2" fontWeight={700} color="text.primary">
                           {adv.id}
                         </Typography>
                         <Chip
@@ -317,7 +323,7 @@ export default function StaffExpensePage() {
                           sx={{
                             height: 6,
                             borderRadius: 1,
-                            backgroundColor: "#e2e8f0",
+                            backgroundColor: mode === "light" ? "#e2e8f0" : "rgba(255,255,255,0.1)",
                             "& .MuiLinearProgress-bar": {
                               backgroundColor: pctUsed >= 100 ? "#64748b" : "#c99738",
                             },
@@ -325,7 +331,7 @@ export default function StaffExpensePage() {
                         />
                       </Box>
 
-                      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1.5, pt: 1, borderTop: "1px dashed #cbd5e1" }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1.5, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
                         <Typography variant="caption">Total: <strong>{currency} {totalAmt.toLocaleString()}</strong></Typography>
                         <Typography variant="caption" color="text.secondary">Used: <strong>{currency} {used.toLocaleString()}</strong></Typography>
                         <Typography variant="caption" color={rem > 0 ? "secondary.dark" : "text.secondary"}>
@@ -342,7 +348,7 @@ export default function StaffExpensePage() {
       )}
 
       {/* Expense History Table with Filters */}
-      <Card sx={{ border: "1px solid #cbd5e1" }}>
+      <Card sx={{ border: "1px solid", borderColor: "divider" }}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Box
             sx={{
@@ -354,7 +360,7 @@ export default function StaffExpensePage() {
               mb: 2.5,
             }}
           >
-            <Typography variant="h6" fontWeight={800} color="#0f172a">
+            <Typography variant="h6" fontWeight={800} color="text.primary">
               Submitted Expenses
             </Typography>
 
@@ -418,7 +424,8 @@ export default function StaffExpensePage() {
             component={Paper}
             elevation={0}
             sx={{
-              border: "1px solid #cbd5e1",
+              border: "1px solid",
+              borderColor: "divider",
               borderRadius: 2,
               overflowX: "auto",
               WebkitOverflowScrolling: "touch",

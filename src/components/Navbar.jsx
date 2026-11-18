@@ -76,10 +76,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
     );
   };
 
-  const headerBg = mode === "light" 
-    ? (settings.headerBgColor || "#0f2942") 
-    : "#0c1726";
+  const headerBg = settings.headerBgColor || (mode === "light" ? "#0f2942" : "#0c1726");
   const headerText = settings.headerTextColor || "#ffffff";
+  const headerAccent = settings.headerAccentColor || "#c99738";
 
   // Tab definitions
   const tabsList = [];
@@ -177,18 +176,18 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   startIcon={t.icon}
                   onClick={() => setActiveTab(t.id)}
                   sx={{
-                    color: isActive ? "#0f2942" : "#ffffff",
-                    backgroundColor: isActive ? "#ffffff" : "rgba(255,255,255,0.12)",
-                    border: isActive ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
+                    color: isActive ? (mode === "light" ? headerBg : "#ffffff") : "rgba(255,255,255,0.88)",
+                    backgroundColor: isActive ? (mode === "light" ? "#ffffff" : headerAccent) : "rgba(255,255,255,0.12)",
+                    border: isActive ? `2px solid ${mode === "light" ? "#ffffff" : headerAccent}` : "1px solid rgba(255,255,255,0.25)",
                     borderRadius: 2,
                     px: 2,
                     py: 0.8,
                     fontWeight: 800,
                     fontSize: "0.85rem",
-                    boxShadow: isActive ? "0 4px 12px rgba(0,0,0,0.25)" : "none",
+                    boxShadow: isActive ? "0 4px 12px rgba(0,0,0,0.3)" : "none",
                     whiteSpace: "nowrap",
                     "&:hover": {
-                      backgroundColor: isActive ? "#f8fafc" : "rgba(255,255,255,0.24)",
+                      backgroundColor: isActive ? (mode === "light" ? "#f8fafc" : headerAccent) : "rgba(255,255,255,0.22)",
                     },
                   }}
                 >
@@ -296,14 +295,14 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   fontWeight: 800,
                   borderRadius: 2,
                   whiteSpace: "nowrap",
-                  color: isActive ? "#0f2942" : "#ffffff",
-                  backgroundColor: isActive ? "#ffffff" : "rgba(255,255,255,0.12)",
-                  boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.25)" : "none",
+                  color: isActive ? (mode === "light" ? headerBg : "#ffffff") : "rgba(255,255,255,0.88)",
+                  backgroundColor: isActive ? (mode === "light" ? "#ffffff" : headerAccent) : "rgba(255,255,255,0.12)",
+                  boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.3)" : "none",
                   "& .MuiButton-startIcon": {
                     mr: { xs: 0.5, sm: 0.8 },
                   },
                   "&:hover": {
-                    backgroundColor: isActive ? "#f8fafc" : "rgba(255,255,255,0.2)",
+                    backgroundColor: isActive ? (mode === "light" ? "#f8fafc" : headerAccent) : "rgba(255,255,255,0.2)",
                   },
                 }}
               >

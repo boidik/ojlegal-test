@@ -1,8 +1,16 @@
 import React from "react";
 import { Card, CardContent, Typography, Box } from "@mui/material";
 import { motion } from "framer-motion";
+import { useAppTheme } from "../context/ThemeContext";
 
 export default function StatCard({ title, value, subtitle, icon: Icon, color = "#0f2942", delay = 0 }) {
+  const { mode } = useAppTheme();
+
+  // In dark mode, adapt dark navy / dark primary colors to vibrant high-contrast accents
+  const effectiveColor = mode === "dark"
+    ? (color === "#0f2942" ? "#38bdf8" : color === "#1e40af" ? "#60a5fa" : color)
+    : color;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -15,8 +23,10 @@ export default function StatCard({ title, value, subtitle, icon: Icon, color = "
           height: "100%",
           position: "relative",
           overflow: "hidden",
-          border: "1px solid #cbd5e1",
-          borderLeft: `5px solid ${color}`,
+          border: "1px solid",
+          borderColor: "divider",
+          borderLeft: `5px solid ${effectiveColor}`,
+          backgroundColor: mode === "light" ? "#ffffff" : "#0f1a2c",
         }}
       >
         <CardContent sx={{ p: 2.5 }}>
@@ -48,8 +58,8 @@ export default function StatCard({ title, value, subtitle, icon: Icon, color = "
             {Icon && (
               <Box
                 sx={{
-                  backgroundColor: `${color}15`,
-                  color: color,
+                  backgroundColor: mode === "light" ? `${effectiveColor}18` : `${effectiveColor}30`,
+                  color: effectiveColor,
                   p: 1.2,
                   borderRadius: 2.5,
                   display: "flex",

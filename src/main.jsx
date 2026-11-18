@@ -9,13 +9,13 @@ import { AppProvider } from "./context/AppContext";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <CustomThemeProvider>
-        <AuthProvider>
-          <AppProvider>
+      <AuthProvider>
+        <AppProvider>
+          <CustomThemeProvider>
             <App />
-          </AppProvider>
-        </AuthProvider>
-      </CustomThemeProvider>
+          </CustomThemeProvider>
+        </AppProvider>
+      </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
