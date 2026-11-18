@@ -27,6 +27,8 @@ import {
   updateSettings as dbUpdateSettings,
   getUsers,
   updateUserRole as dbUpdateUserRole,
+  deleteUser as dbDeleteUser,
+  deleteAllData as dbDeleteAllData,
   applyFaviconAndTitle
 } from "../services/dataStore";
 import { isFirebaseConfigured, getActiveFirebaseConfig } from "../services/firebase";
@@ -312,6 +314,30 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const handleDeleteUser = async (uid, deleteAssociatedData, userName = "Staff member") => {
+    try {
+      await dbDeleteUser(uid, deleteAssociatedData);
+      await refreshData();
+      if (deleteAssociatedData) {
+        showNotification(`${userName} and all associated expenses/advances have been permanently deleted.`, "info");
+      } else {
+        showNotification(`${userName} has been removed. All past expense/advance records preserved.`, "info");
+      }
+    } catch (e) {
+      showNotification(formatFirestoreError("Failed to delete staff member", e), "error");
+    }
+  };
+
+  const handleDeleteAllData = async () => {
+    try {
+      await dbDeleteAllData();
+      await refreshData();
+      showNotification("All database records (cases, expenses, advances, categories, forums, and staff accounts) have been completely wiped.", "warning");
+    } catch (e) {
+      showNotification(formatFirestoreError("Failed to delete all data", e), "error");
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -354,6 +380,8 @@ export const AppProvider = ({ children }) => {
         // Settings & Users
         saveSettings: handleSaveSettings,
         updateUserRole: handleUpdateUserRole,
+        deleteUser: handleDeleteUser,
+        deleteAllData: handleDeleteAllData,
       }}
     >
       {children}

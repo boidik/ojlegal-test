@@ -29,10 +29,15 @@ import {
   DialogActions,
   Select,
   FormControl,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
@@ -79,6 +84,7 @@ export default function SoftwareAdminPage() {
     forums,
     users,
     expenses,
+    advances,
     settings,
     saveSettings,
     deleteCase,
@@ -87,12 +93,14 @@ export default function SoftwareAdminPage() {
     seedStandardForums,
     deleteExpense,
     updateUserRole,
+    deleteUser,
+    deleteAllData,
     seedStandardCategories,
     showNotification,
   } = useApp();
 
   // Active Tab Index
-  // 0: Cases | 1: Courts/Forums | 2: Categories | 3: Firm Details | 4: Branding/Favicon | 5: Staff Permissions | 6: Firebase | 7: Master Vouchers
+  // 0: Cases | 1: Courts/Forums | 2: Categories | 3: Firm Details | 4: Branding/Favicon | 5: Staff Permissions | 6: Firebase | 7: Master Vouchers | 8: Danger Zone (Reset)
   const [activeTab, setActiveTab] = useState(0);
 
   // Modals
@@ -107,6 +115,17 @@ export default function SoftwareAdminPage() {
 
   const [openExpenseModal, setOpenExpenseModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
+
+  // Delete Staff Modal State
+  const [openDeleteStaffModal, setOpenDeleteStaffModal] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState(null);
+  const [deleteStaffOption, setDeleteStaffOption] = useState("keep_data"); // "keep_data" | "delete_data"
+  const [deletingStaff, setDeletingStaff] = useState(false);
+
+  // Delete All Data (Danger Zone) Modal State
+  const [openDeleteAllModal, setOpenDeleteAllModal] = useState(false);
+  const [confirmPhrase, setConfirmPhrase] = useState("");
+  const [wipingAllData, setWipingAllData] = useState(false);
 
   // Firm Details Form State
   const [firmForm, setFirmForm] = useState({
@@ -249,6 +268,42 @@ export default function SoftwareAdminPage() {
       clearCustomFirebaseConfig();
     }
   };
+
+  const handleConfirmDeleteStaff = async () => {
+    if (!staffToDelete) return;
+    setDeletingStaff(true);
+    try {
+      await deleteUser(
+        staffToDelete.uid,
+        deleteStaffOption === "delete_data",
+        staffToDelete.displayName || staffToDelete.email
+      );
+      setOpenDeleteStaffModal(false);
+      setStaffToDelete(null);
+    } catch (e) {
+      showNotification("Failed to delete staff member: " + e.message, "error");
+    } finally {
+      setDeletingStaff(false);
+    }
+  };
+
+  const handleConfirmDeleteAllData = async () => {
+    if (confirmPhrase !== "DELETE ALL DATA") return;
+    setWipingAllData(true);
+    try {
+      await deleteAllData();
+      setOpenDeleteAllModal(false);
+      setConfirmPhrase("");
+      setActiveTab(0);
+    } catch (e) {
+      showNotification("Failed to delete all data: " + e.message, "error");
+    } finally {
+      setWipingAllData(false);
+    }
+  };
+
+  const associatedExpenses = staffToDelete ? expenses.filter(e => e.staffId === staffToDelete.uid) : [];
+  const associatedAdvances = staffToDelete ? advances.filter(a => a.staffId === staffToDelete.uid) : [];
 
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 4 }, maxWidth: 1400, mx: "auto" }}>
@@ -428,6 +483,21 @@ export default function SoftwareAdminPage() {
               px: 2,
               color: activeTab === 7 ? "#ffffff !important" : "#334155 !important",
               backgroundColor: activeTab === 7 ? "#0f2942" : "transparent",
+            }}
+          />
+          <Tab
+            icon={<DeleteForeverIcon />}
+            iconPosition="start"
+            label="System Reset (Danger Zone)"
+            sx={{
+              fontWeight: 800,
+              fontSize: "0.85rem",
+              borderRadius: 2,
+              mx: 0.4,
+              py: 1,
+              px: 2,
+              color: activeTab === 8 ? "#ffffff !important" : "#dc2626 !important",
+              backgroundColor: activeTab === 8 ? "#dc2626" : "transparent",
             }}
           />
         </Tabs>
@@ -1269,7 +1339,7 @@ export default function SoftwareAdminPage() {
                   <TableCell>Official Email</TableCell>
                   <TableCell align="center">Current Role</TableCell>
                   <TableCell align="center" sx={{ minWidth: 260 }}>1-Click Role Assignment</TableCell>
-                  <TableCell align="right">Firebase Reset</TableCell>
+                  <TableCell align="right" sx={{ minWidth: 120 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1365,16 +1435,43 @@ export default function SoftwareAdminPage() {
                       </TableCell>
 
                       <TableCell align="right">
-                        <Tooltip title="Send password reset link via Firebase Auth">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleResetUserPassword(u.email)}
-                            sx={{ border: "1px solid #cbd5e1", borderRadius: 1.5 }}
-                          >
-                            <LockResetIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+                          <Tooltip title="Send password reset link via Firebase Auth">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleResetUserPassword(u.email)}
+                              sx={{ border: "1px solid #cbd5e1", borderRadius: 1.5 }}
+                            >
+                              <LockResetIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          {(u.email || "").toLowerCase() === "advocate@boidikghosh.in" || u.uid === currentUser?.uid ? (
+                            <Tooltip title="Primary Master Software Admin cannot be deleted">
+                              <span>
+                                <IconButton size="small" disabled sx={{ border: "1px solid #e2e8f0", borderRadius: 1.5 }}>
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip title="Delete staff account (with or without past records)">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => {
+                                  setStaffToDelete(u);
+                                  setDeleteStaffOption("keep_data");
+                                  setOpenDeleteStaffModal(true);
+                                }}
+                                sx={{ border: "1px solid #fecaca", borderRadius: 1.5, "&:hover": { bgcolor: "#fee2e2" } }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))
@@ -1382,6 +1479,28 @@ export default function SoftwareAdminPage() {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* Quick Danger Zone Navigation Bar */}
+          <Box sx={{ p: 2, bgcolor: "#fff5f5", borderTop: "1px solid #fecaca", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
+            <Box>
+              <Typography variant="body2" fontWeight={800} color="#991b1b">
+                Database Administration & Data Management
+              </Typography>
+              <Typography variant="caption" color="#7f1d1d">
+                Need to wipe all test records or reset the firm database in entirety?
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<DeleteForeverIcon />}
+              onClick={() => setActiveTab(8)}
+              sx={{ fontWeight: 800, borderColor: "#dc2626" }}
+            >
+              Open Danger Zone (Delete All Data)
+            </Button>
+          </Box>
         </Card>
       )}
 
@@ -1722,6 +1841,141 @@ service cloud.firestore {
         </Card>
       )}
 
+      {/* ==================== TAB 8: SYSTEM RESET & DANGER ZONE ==================== */}
+      {activeTab === 8 && (
+        <Card sx={{ border: "2px solid #ef4444", borderRadius: 3, overflow: "hidden" }}>
+          <Box sx={{ bgcolor: "#fef2f2", p: { xs: 2, sm: 3 }, borderBottom: "1px solid #fecaca" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2.5,
+                  backgroundColor: "#dc2626",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 14px rgba(220, 38, 38, 0.3)",
+                  flexShrink: 0,
+                }}
+              >
+                <DeleteForeverIcon sx={{ fontSize: 26 }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" fontWeight={800} color="#991b1b" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+                  Master Data Wipe & System Reset (Danger Zone)
+                </Typography>
+                <Typography variant="body2" color="#7f1d1d" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
+                  Irreversible operation: completely wipe all cases, expense vouchers, advance floats, categories, forums, and staff accounts from Firestore.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+              <Typography variant="subtitle2" fontWeight={800}>
+                CRITICAL WARNING: This action cannot be reversed!
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5, fontSize: "0.85rem" }}>
+                Executing this will purge all existing data in entirety across all collections in Google Cloud Firestore (<code>ojlegal-test</code>) and local cache.
+                Only your primary administrator account (<code>advocate@boidikghosh.in</code>) will be preserved so you never lose master administrative control.
+              </Typography>
+            </Alert>
+
+            {/* Inventory Breakdown */}
+            <Typography variant="subtitle1" fontWeight={800} color="#0f172a" sx={{ mb: 2 }}>
+              Current Database Records to be Wiped:
+            </Typography>
+
+            <Grid container spacing={2} sx={{ mb: 4 }}>
+              <Grid item xs={6} sm={4} md={2}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={700}>CASES</Typography>
+                  <Typography variant="h5" fontWeight={800} color="#0f172a">{cases.length}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={700}>EXPENSES</Typography>
+                  <Typography variant="h5" fontWeight={800} color="#0f172a">{expenses.length}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={700}>ADVANCES</Typography>
+                  <Typography variant="h5" fontWeight={800} color="#0f172a">{advances.length}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={700}>COURTS</Typography>
+                  <Typography variant="h5" fontWeight={800} color="#0f172a">{forums.length}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={700}>CATEGORIES</Typography>
+                  <Typography variant="h5" fontWeight={800} color="#0f172a">{categories.length}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid #cbd5e1", borderRadius: 2, bgcolor: "#f8fafc", textAlign: "center" }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={700}>USERS</Typography>
+                  <Typography variant="h5" fontWeight={800} color="#0f172a">{users.length}</Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            <Box
+              sx={{
+                p: { xs: 2, sm: 2.5 },
+                border: "1px dashed #ef4444",
+                borderRadius: 2.5,
+                bgcolor: "#fff5f5",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexDirection: { xs: "column", sm: "row" },
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle1" fontWeight={800} color="#991b1b">
+                  Nuclear Master Purge
+                </Typography>
+                <Typography variant="body2" color="#7f1d1d" sx={{ fontSize: "0.85rem" }}>
+                  Wipe all tables, clear test data, and reset database to pristine initial state.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                color="error"
+                size="large"
+                startIcon={<DeleteForeverIcon />}
+                onClick={() => {
+                  setConfirmPhrase("");
+                  setOpenDeleteAllModal(true);
+                }}
+                sx={{
+                  fontWeight: 800,
+                  py: 1.3,
+                  px: 3.5,
+                  backgroundColor: "#dc2626",
+                  boxShadow: "0 4px 14px rgba(220, 38, 38, 0.3)",
+                  "&:hover": { backgroundColor: "#b91c1c" },
+                  width: { xs: "100%", sm: "auto" },
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Delete All Data in Entirety
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Case Modal */}
       <CaseDialog open={openCaseModal} onClose={() => setOpenCaseModal(false)} caseToEdit={selectedCase} />
 
@@ -1733,6 +1987,227 @@ service cloud.firestore {
 
       {/* Expense Modal */}
       <ExpenseDialog open={openExpenseModal} onClose={() => setOpenExpenseModal(false)} expenseToEdit={selectedExpense} />
+
+      {/* ==================== DELETE STAFF MEMBER MODAL ==================== */}
+      <Dialog
+        open={openDeleteStaffModal}
+        onClose={() => !deletingStaff && setOpenDeleteStaffModal(false)}
+        maxWidth="sm"
+        fullWidth
+        sx={{ "& .MuiDialog-paper": { m: { xs: 1.5, sm: 3 } } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1, px: { xs: 2, sm: 3 } }}>
+          <DeleteIcon color="error" />
+          <Box>
+            <Typography variant="h6" fontWeight={800} color="#0f172a" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+              Delete Staff Member
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Select whether to preserve or purge associated vouchers and advances
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <Divider />
+
+        <DialogContent sx={{ pt: 2.5, px: { xs: 2, sm: 3 } }}>
+          {staffToDelete && (
+            <>
+              {/* Staff Member Info Banner */}
+              <Paper elevation={0} sx={{ p: 2, mb: 2.5, bgcolor: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: 2 }}>
+                <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+                  {staffToDelete.displayName || "Staff Member"}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                  {staffToDelete.email} • UID: {staffToDelete.uid}
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+                  <RoleBadge role={staffToDelete.role} size="small" />
+                  <Chip
+                    label={`${associatedExpenses.length} Expense Voucher(s)`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, fontSize: "0.72rem" }}
+                  />
+                  <Chip
+                    label={`${associatedAdvances.length} Advance Float(s)`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, fontSize: "0.72rem" }}
+                  />
+                </Box>
+              </Paper>
+
+              <Typography variant="subtitle2" fontWeight={800} color="#0f172a" sx={{ mb: 1.5 }}>
+                Choose Deletion Mode:
+              </Typography>
+
+              <FormControl component="fieldset" fullWidth>
+                <RadioGroup
+                  value={deleteStaffOption}
+                  onChange={(e) => setDeleteStaffOption(e.target.value)}
+                >
+                  {/* Option 1: Keep Data */}
+                  <Paper
+                    elevation={0}
+                    onClick={() => setDeleteStaffOption("keep_data")}
+                    sx={{
+                      p: 2,
+                      mb: 1.5,
+                      border: "2px solid",
+                      borderColor: deleteStaffOption === "keep_data" ? "#2563eb" : "#cbd5e1",
+                      borderRadius: 2,
+                      cursor: "pointer",
+                      bgcolor: deleteStaffOption === "keep_data" ? "#eff6ff" : "#ffffff",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <FormControlLabel
+                      value="keep_data"
+                      control={<Radio color="primary" />}
+                      label={
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight={800} color="#0f172a">
+                            Delete Staff Member ONLY (Without deleting associated data)
+                          </Typography>
+                          <Typography variant="caption" color="#475569" sx={{ display: "block", mt: 0.3 }}>
+                            Recommended for legal audit integrity. Removes the staff login and account, but keeps all {associatedExpenses.length} expense vouchers and {associatedAdvances.length} advances in the case ledger under their name.
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ m: 0, alignItems: "flex-start" }}
+                    />
+                  </Paper>
+
+                  {/* Option 2: Delete Data */}
+                  <Paper
+                    elevation={0}
+                    onClick={() => setDeleteStaffOption("delete_data")}
+                    sx={{
+                      p: 2,
+                      border: "2px solid",
+                      borderColor: deleteStaffOption === "delete_data" ? "#dc2626" : "#cbd5e1",
+                      borderRadius: 2,
+                      cursor: "pointer",
+                      bgcolor: deleteStaffOption === "delete_data" ? "#fef2f2" : "#ffffff",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <FormControlLabel
+                      value="delete_data"
+                      control={<Radio color="error" />}
+                      label={
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight={800} color="#dc2626">
+                            Delete Staff Member AND Delete Associated Data
+                          </Typography>
+                          <Typography variant="caption" color="#475569" sx={{ display: "block", mt: 0.3 }}>
+                            Destructive action. Permanently deletes this staff member's account AND wipes all {associatedExpenses.length} expense vouchers and {associatedAdvances.length} advance floats logged by this associate.
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ m: 0, alignItems: "flex-start" }}
+                    />
+                  </Paper>
+                </RadioGroup>
+              </FormControl>
+            </>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, flexDirection: { xs: "column-reverse", sm: "row" }, gap: 1 }}>
+          <Button onClick={() => setOpenDeleteStaffModal(false)} color="inherit" disabled={deletingStaff} sx={{ width: { xs: "100%", sm: "auto" } }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color={deleteStaffOption === "delete_data" ? "error" : "primary"}
+            onClick={handleConfirmDeleteStaff}
+            disabled={deletingStaff}
+            startIcon={deletingStaff ? <CircularProgress size={18} color="inherit" /> : <DeleteIcon />}
+            sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" } }}
+          >
+            {deletingStaff
+              ? "Deleting..."
+              : deleteStaffOption === "delete_data"
+              ? "Delete Staff & Associated Data"
+              : "Delete Staff (Keep Records)"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ==================== DELETE ALL DATA MODAL ==================== */}
+      <Dialog
+        open={openDeleteAllModal}
+        onClose={() => !wipingAllData && setOpenDeleteAllModal(false)}
+        maxWidth="sm"
+        fullWidth
+        sx={{ "& .MuiDialog-paper": { m: { xs: 1.5, sm: 3 } } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1, px: { xs: 2, sm: 3 }, bgcolor: "#fef2f2" }}>
+          <WarningAmberIcon color="error" sx={{ fontSize: 28 }} />
+          <Box>
+            <Typography variant="h6" fontWeight={800} color="#991b1b" sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+              Confirm Nuclear Wipe of Entire Database
+            </Typography>
+            <Typography variant="caption" color="#7f1d1d">
+              This operation will permanently delete all records across all collections
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <Divider />
+
+        <DialogContent sx={{ pt: 3, px: { xs: 2, sm: 3 } }}>
+          <Typography variant="body2" color="#334155" sx={{ mb: 2 }}>
+            You are about to permanently wipe <strong>all data</strong> from the Google Cloud Firestore database:
+          </Typography>
+
+          <Box component="ul" sx={{ pl: 2.5, mb: 2.5, color: "#475569", fontSize: "0.85rem", lineHeight: 1.7 }}>
+            <li><strong>{cases.length} Cases</strong> in the case registry</li>
+            <li><strong>{expenses.length} Expense Vouchers</strong> across all associates</li>
+            <li><strong>{advances.length} Staff Advances</strong> & float histories</li>
+            <li><strong>{categories.length} Expense Categories</strong></li>
+            <li><strong>{forums.length} Registered Courts & Tribunals</strong></li>
+            <li><strong>Staff & Boss Accounts</strong> (Sole master admin <code>advocate@boidikghosh.in</code> is preserved)</li>
+            <li>Official firm branding & settings reset to standard defaults</li>
+          </Box>
+
+          <Typography variant="body2" fontWeight={700} color="#0f172a" sx={{ mb: 1 }}>
+            To confirm, type <strong style={{ color: "#dc2626" }}>DELETE ALL DATA</strong> in uppercase below:
+          </Typography>
+
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="DELETE ALL DATA"
+            value={confirmPhrase}
+            onChange={(e) => setConfirmPhrase(e.target.value)}
+            disabled={wipingAllData}
+            autoFocus
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                fontWeight: 700,
+                color: confirmPhrase === "DELETE ALL DATA" ? "#dc2626" : "inherit",
+              },
+            }}
+          />
+        </DialogContent>
+
+        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, flexDirection: { xs: "column-reverse", sm: "row" }, gap: 1 }}>
+          <Button onClick={() => setOpenDeleteAllModal(false)} color="inherit" disabled={wipingAllData} sx={{ width: { xs: "100%", sm: "auto" } }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDeleteAllData}
+            disabled={confirmPhrase !== "DELETE ALL DATA" || wipingAllData}
+            startIcon={wipingAllData ? <CircularProgress size={18} color="inherit" /> : <DeleteForeverIcon />}
+            sx={{ fontWeight: 800, width: { xs: "100%", sm: "auto" }, backgroundColor: "#dc2626" }}
+          >
+            {wipingAllData ? "Wiping Entire Database..." : "Permanently Delete All Data"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -594,3 +594,146 @@ export const updateUserRole = async (uid, role) => {
   setLocal(STORAGE_KEYS.USERS, updated);
   return true;
 };
+
+export const deleteUser = async (uid, deleteAssociatedData = false) => {
+  if (isFirebaseConfigured() && db) {
+    try {
+      await deleteDoc(doc(db, "users", uid));
+    } catch (e) {
+      console.warn("Remote delete user failed:", e);
+    }
+
+    if (deleteAssociatedData) {
+      // Delete expenses recorded by this user
+      try {
+        const expSnap = await getDocs(collection(db, "expenses"));
+        for (const d of expSnap.docs) {
+          const data = d.data();
+          if (data.staffId === uid) {
+            await deleteDoc(d.ref);
+          }
+        }
+      } catch (err) {
+        console.warn("Remote delete associated expenses failed:", err);
+      }
+
+      // Delete advances disbursed to this user
+      try {
+        const advSnap = await getDocs(collection(db, "advances"));
+        for (const d of advSnap.docs) {
+          const data = d.data();
+          if (data.staffId === uid) {
+            await deleteDoc(d.ref);
+          }
+        }
+      } catch (err) {
+        console.warn("Remote delete associated advances failed:", err);
+      }
+    }
+  }
+
+  // Update Local Storage
+  const localUsers = getLocal(STORAGE_KEYS.USERS, OFFLINE_DEMO_USERS);
+  const updatedUsers = localUsers.filter(u => u.uid !== uid);
+  setLocal(STORAGE_KEYS.USERS, updatedUsers);
+
+  if (deleteAssociatedData) {
+    const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
+    setLocal(STORAGE_KEYS.EXPENSES, localExpenses.filter(e => e.staffId !== uid));
+
+    const localAdvances = getLocal(STORAGE_KEYS.ADVANCES, []);
+    setLocal(STORAGE_KEYS.ADVANCES, localAdvances.filter(a => a.staffId !== uid));
+  }
+
+  return true;
+};
+
+export const deleteAllData = async (preserveAdminEmail = "advocate@boidikghosh.in") => {
+  if (isFirebaseConfigured() && db) {
+    // 1. Delete all expenses
+    try {
+      const expSnap = await getDocs(collection(db, "expenses"));
+      for (const d of expSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch (e) {
+      console.warn("Error wiping expenses:", e);
+    }
+
+    // 2. Delete all advances
+    try {
+      const advSnap = await getDocs(collection(db, "advances"));
+      for (const d of advSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch (e) {
+      console.warn("Error wiping advances:", e);
+    }
+
+    // 3. Delete all cases
+    try {
+      const caseSnap = await getDocs(collection(db, "cases"));
+      for (const d of caseSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch (e) {
+      console.warn("Error wiping cases:", e);
+    }
+
+    // 4. Delete all categories
+    try {
+      const catSnap = await getDocs(collection(db, "categories"));
+      for (const d of catSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch (e) {
+      console.warn("Error wiping categories:", e);
+    }
+
+    // 5. Delete all forums
+    try {
+      const forumSnap = await getDocs(collection(db, "forums"));
+      for (const d of forumSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch (e) {
+      console.warn("Error wiping forums:", e);
+    }
+
+    // 6. Delete all users except primary master admin
+    try {
+      const userSnap = await getDocs(collection(db, "users"));
+      for (const d of userSnap.docs) {
+        const uData = d.data();
+        if ((uData.email || "").toLowerCase() !== preserveAdminEmail.toLowerCase()) {
+          await deleteDoc(d.ref);
+        }
+      }
+    } catch (e) {
+      console.warn("Error wiping users:", e);
+    }
+
+    // 7. Reset system settings to initial default
+    try {
+      await setDoc(doc(db, "system", "general"), INITIAL_SETTINGS);
+    } catch (e) {
+      console.warn("Error resetting system settings:", e);
+    }
+  }
+
+  // Clear LocalStorage
+  setLocal(STORAGE_KEYS.EXPENSES, []);
+  setLocal(STORAGE_KEYS.ADVANCES, []);
+  setLocal(STORAGE_KEYS.CASES, []);
+  setLocal(STORAGE_KEYS.CATEGORIES, []);
+  setLocal(STORAGE_KEYS.FORUMS, []);
+  
+  const localUsers = getLocal(STORAGE_KEYS.USERS, OFFLINE_DEMO_USERS);
+  const filteredUsers = localUsers.filter(u => (u.email || "").toLowerCase() === preserveAdminEmail.toLowerCase());
+  setLocal(STORAGE_KEYS.USERS, filteredUsers);
+
+  setLocal(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+  applyFaviconAndTitle(INITIAL_SETTINGS);
+
+  return true;
+};
