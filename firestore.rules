@@ -70,10 +70,12 @@ service cloud.firestore {
 
     // Advances:
     // - Authenticated users can read advances (staff views their allocated float)
-    // - Accounts Admin / Boss can disburse and settle advances
+    // - Accounts Admin / Boss can disburse and delete advances
+    // - Authenticated staff can update advance usage against their float
     match /advances/{advanceId} {
       allow read: if isAuthenticated();
-      allow write: if isAccountsAdmin();
+      allow create, delete: if isAccountsAdmin();
+      allow update: if isAuthenticated();
     }
 
     // Users directory:

@@ -2754,7 +2754,8 @@ service cloud.firestore {
     }
     match /advances/{advanceId} {
       allow read: if isAuthenticated();
-      allow write: if isAccountsAdmin();
+      allow create, delete: if isAccountsAdmin();
+      allow update: if isAuthenticated();
     }
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -2811,7 +2812,8 @@ service cloud.firestore {
     }
     match /advances/{advanceId} {
       allow read: if isAuthenticated();
-      allow write: if isAccountsAdmin();
+      allow create, delete: if isAccountsAdmin();
+      allow update: if isAuthenticated();
     }
     match /users/{userId} {
       allow read: if isAuthenticated();

@@ -210,11 +210,26 @@ export const getExpenses = async (filters = {}) => {
       const q = query(collection(db, "expenses"), orderBy("date", "desc"));
       const snapshot = await getDocs(q);
       list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (list.length > 0) {
+        setLocal(STORAGE_KEYS.EXPENSES, list);
+      }
     } catch (e) {
-      console.warn("Remote getExpenses failed:", e);
-      list = [];
+      console.warn("Remote getExpenses with orderBy failed, falling back to simple query:", e);
+      try {
+        const qSimple = query(collection(db, "expenses"));
+        const snapshot = await getDocs(qSimple);
+        list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        if (list.length > 0) {
+          setLocal(STORAGE_KEYS.EXPENSES, list);
+        }
+      } catch (e2) {
+        console.warn("Simple query also failed:", e2);
+      }
     }
-  } else {
+  }
+
+  if (list.length === 0) {
     list = getLocal(STORAGE_KEYS.EXPENSES, []);
   }
 
@@ -250,11 +265,39 @@ export const getExpenses = async (filters = {}) => {
   return list;
 };
 
+// Real-time Firestore subscription for live expense vouchers
+export const subscribeExpenses = (callback) => {
+  if (!isFirebaseConfigured() || !db) return () => {};
+
+  try {
+    const q = query(collection(db, "expenses"));
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const expensesList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        expensesList.sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
+        setLocal(STORAGE_KEYS.EXPENSES, expensesList);
+        callback(expensesList);
+      },
+      (err) => {
+        console.warn("Real-time expenses collection snapshot listener failed:", err);
+      }
+    );
+  } catch (e) {
+    console.warn("subscribeExpenses error:", e);
+    return () => {};
+  }
+};
+
 export const addExpense = async (expenseData) => {
+  const isAdvance = expenseData.paymentMode === "firm_advance" || Boolean(expenseData.advanceDeducted);
   const newExpense = {
     ...expenseData,
     id: expenseData.id || `EXP-${Date.now().toString().slice(-6)}`,
     amount: Number(expenseData.amount) || 0,
+    paymentMode: expenseData.paymentMode || "cash",
+    advanceDeducted: isAdvance,
+    advanceId: isAdvance ? (expenseData.advanceId || null) : null,
     status: expenseData.status || "approved",
     createdAt: new Date().toISOString(),
   };
@@ -264,10 +307,10 @@ export const addExpense = async (expenseData) => {
   }
 
   const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
-  const updatedExpenses = [newExpense, ...localExpenses];
+  const updatedExpenses = [newExpense, ...localExpenses.filter(e => e.id !== newExpense.id)];
   setLocal(STORAGE_KEYS.EXPENSES, updatedExpenses);
 
-  if (newExpense.advanceId && (newExpense.paymentMode === "firm_advance" || newExpense.advanceDeducted)) {
+  if (newExpense.advanceId && isAdvance) {
     await updateAdvanceUsage(newExpense.advanceId);
   }
 
@@ -275,20 +318,34 @@ export const addExpense = async (expenseData) => {
 };
 
 export const updateExpense = async (id, updates) => {
-  if (isFirebaseConfigured() && db) {
-    await updateDoc(doc(db, "expenses", id), updates);
-  }
-
   const localExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
   const existing = localExpenses.find(e => e.id === id);
-  const updatedExpenses = localExpenses.map(e => e.id === id ? { ...e, ...updates } : e);
+
+  const effectiveMode = updates.paymentMode !== undefined ? updates.paymentMode : (existing?.paymentMode || "cash");
+  const isAdvance = effectiveMode === "firm_advance";
+
+  const sanitizedUpdates = {
+    ...updates,
+    ...(updates.amount !== undefined ? { amount: Number(updates.amount) } : {}),
+    paymentMode: effectiveMode,
+    advanceDeducted: isAdvance,
+    advanceId: isAdvance ? (updates.advanceId !== undefined ? updates.advanceId : existing?.advanceId) : null,
+  };
+
+  if (isFirebaseConfigured() && db) {
+    await updateDoc(doc(db, "expenses", id), sanitizedUpdates);
+  }
+
+  const updatedExpenses = localExpenses.map(e => e.id === id ? { ...e, ...sanitizedUpdates } : e);
   setLocal(STORAGE_KEYS.EXPENSES, updatedExpenses);
 
-  if (existing && existing.advanceId) {
+  // If advance link changed or payment mode changed away from advance, update old advance
+  if (existing && existing.advanceId && (existing.advanceId !== sanitizedUpdates.advanceId || !isAdvance)) {
     await updateAdvanceUsage(existing.advanceId);
   }
-  if (updates.advanceId && updates.advanceId !== existing?.advanceId) {
-    await updateAdvanceUsage(updates.advanceId);
+  // Update new advance
+  if (sanitizedUpdates.advanceId && isAdvance) {
+    await updateAdvanceUsage(sanitizedUpdates.advanceId);
   }
 
   return updatedExpenses.find(e => e.id === id);
@@ -305,7 +362,7 @@ export const deleteExpense = async (id) => {
   const filtered = localExpenses.filter(e => e.id !== id);
   setLocal(STORAGE_KEYS.EXPENSES, filtered);
 
-  if (target && target.advanceId) {
+  if (target && target.advanceId && (target.paymentMode === "firm_advance" || target.advanceDeducted)) {
     await updateAdvanceUsage(target.advanceId);
   }
 
@@ -524,7 +581,9 @@ export const updateAdvanceUsage = async (advanceId) => {
     allExpenses = getLocal(STORAGE_KEYS.EXPENSES, []);
   }
 
-  const matchingExpenses = allExpenses.filter(e => e.advanceId === advanceId);
+  const matchingExpenses = allExpenses.filter(e => 
+    e.advanceId === advanceId && (e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted))
+  );
   const totalUsed = matchingExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
   let targetAdvance = null;
@@ -545,9 +604,12 @@ export const updateAdvanceUsage = async (advanceId) => {
   }
 
   if (targetAdvance) {
-    const isSettled = totalUsed >= targetAdvance.amount;
+    const totalAllocated = Number(targetAdvance.amount || 0);
+    const balance = Math.max(0, totalAllocated - totalUsed);
+    const isSettled = balance <= 0 || totalUsed >= totalAllocated;
     const updates = {
       usedAmount: totalUsed,
+      balance: balance,
       status: isSettled ? "settled" : "active"
     };
 

@@ -19,6 +19,7 @@ import {
   TextField,
   MenuItem,
   InputAdornment,
+  LinearProgress,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -29,6 +30,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { motion } from "framer-motion";
 import StatCard from "../components/StatCard";
 import ExpenseDialog from "../components/ExpenseDialog";
@@ -77,10 +79,25 @@ export default function StaffExpensePage() {
   const myExpenses = expenses.filter(isMyRecord);
   const myAdvances = advances.filter(isMyRecord);
 
+  // Live Accurate Math Breakdown:
+  // 1. Paid from Firm Advance Float
+  const myAdvanceExpenses = myExpenses.filter(e => e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted));
+  // 2. Paid from Self / Out-of-Pocket (Personal cash/UPI/card claimable for reimbursement)
+  const mySelfExpenses = myExpenses.filter(e => e.paymentMode !== "firm_advance" && !e.advanceDeducted);
+
   const totalMyExpenses = myExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const totalPaidFromAdvance = myAdvanceExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const totalPaidFromSelf = mySelfExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
   const totalAdvancesReceived = myAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
-  const totalAdvancesUsed = myAdvances.reduce((sum, a) => sum + (Number(a.usedAmount) || 0), 0);
-  const remainingFloatBalance = totalAdvancesReceived - totalAdvancesUsed;
+  const totalAdvancesUsed = myAdvances.reduce((sum, a) => {
+    const fromExp = myExpenses
+      .filter(e => e.advanceId === a.id && (e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted)))
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    return sum + (fromExp > 0 ? fromExp : Number(a.usedAmount || 0));
+  }, 0);
+
+  const remainingFloatBalance = Math.max(0, totalAdvancesReceived - totalAdvancesUsed);
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
@@ -189,13 +206,13 @@ export default function StaffExpensePage() {
         </Box>
       </Box>
 
-      {/* KPI Cards */}
+      {/* KPI Cards: 100% Mathematically Reconciled Live Stats */}
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="My Total Expenses Logged"
+            title="Total Expenses Incurred"
             value={`${currency} ${totalMyExpenses.toLocaleString()}`}
-            subtitle={`${myExpenses.length} entries submitted`}
+            subtitle={`${myExpenses.length} verified voucher entries`}
             icon={TrendingUpIcon}
             color="#0f2942"
             delay={0.05}
@@ -204,33 +221,33 @@ export default function StaffExpensePage() {
 
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Advances Allocated"
-            value={`${currency} ${totalAdvancesReceived.toLocaleString()}`}
-            subtitle={`${myAdvances.length} advances disbursed`}
+            title="Deducted from Advance Float"
+            value={`${currency} ${totalPaidFromAdvance.toLocaleString()}`}
+            subtitle={`${myAdvanceExpenses.length} deducted from firm float`}
             icon={AccountBalanceWalletIcon}
-            color="#0284c7"
+            color="#c99738"
             delay={0.1}
           />
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Advances Expended / Settled"
-            value={`${currency} ${totalAdvancesUsed.toLocaleString()}`}
-            subtitle="Deducted against firm vouchers"
-            icon={CheckCircleIcon}
-            color="#16a34a"
+            title="Paid from Self (Reimbursable)"
+            value={`${currency} ${totalPaidFromSelf.toLocaleString()}`}
+            subtitle={`${mySelfExpenses.length} personal out-of-pocket claims`}
+            icon={ReceiptLongIcon}
+            color="#1e40af"
             delay={0.15}
           />
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Usable Advance Float Balance"
+            title="Remaining Usable Float"
             value={`${currency} ${remainingFloatBalance.toLocaleString()}`}
-            subtitle={remainingFloatBalance > 0 ? "Available for upcoming expenses" : "No active advance float"}
+            subtitle={`Out of ${currency} ${totalAdvancesReceived.toLocaleString()} total float`}
             icon={AssignmentTurnedInIcon}
-            color={remainingFloatBalance > 0 ? "#c99738" : "#94a3b8"}
+            color={remainingFloatBalance > 0 ? "#16a34a" : "#64748b"}
             delay={0.2}
           />
         </Grid>
@@ -248,7 +265,14 @@ export default function StaffExpensePage() {
             </Box>
             <Grid container spacing={2}>
               {myAdvances.map((adv) => {
-                const rem = adv.amount - (adv.usedAmount || 0);
+                const advExpenses = myExpenses.filter(e => e.advanceId === adv.id && (e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted)));
+                const fromExp = advExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+                const used = fromExp > 0 ? fromExp : Number(adv.usedAmount || 0);
+                const totalAmt = Number(adv.amount || 0);
+                const rem = Math.max(0, totalAmt - used);
+                const pctUsed = totalAmt > 0 ? Math.min(100, Math.round((used / totalAmt) * 100)) : 0;
+                const isSettled = rem <= 0 || adv.status === "settled";
+
                 return (
                   <Grid item xs={12} sm={6} md={4} key={adv.id}>
                     <Paper
@@ -257,8 +281,8 @@ export default function StaffExpensePage() {
                         p: 2,
                         borderRadius: 2,
                         border: "1px solid",
-                        borderColor: rem > 0 ? "secondary.light" : "divider",
-                        backgroundColor: rem > 0 ? "rgba(201, 151, 56, 0.05)" : "background.default",
+                        borderColor: !isSettled ? "#c99738" : "divider",
+                        backgroundColor: !isSettled ? "rgba(201, 151, 56, 0.05)" : "background.default",
                       }}
                     >
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -266,20 +290,44 @@ export default function StaffExpensePage() {
                           {adv.id}
                         </Typography>
                         <Chip
-                          label={rem > 0 ? "ACTIVE FLOAT" : "SETTLED"}
+                          label={!isSettled ? "ACTIVE FLOAT" : "SETTLED"}
                           size="small"
-                          color={rem > 0 ? "secondary" : "default"}
+                          color={!isSettled ? "secondary" : "default"}
                           sx={{ fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       </Box>
                       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                        Scope: <strong>{adv.caseTitle || (adv.caseId === "ALL" ? "General Float" : adv.caseId)}</strong>
+                        Scope: <strong>{adv.caseTitle || (adv.caseId === "ALL" ? "General Float (Any Case)" : adv.caseId)}</strong>
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                        Disbursed on: {adv.disbursedDate} by {adv.disbursedBy}
+                        Disbursed on: {adv.disbursedDate} by {adv.disbursedBy || "Accounts Admin"}
                       </Typography>
+
+                      {/* Utilization progress bar */}
+                      <Box sx={{ mt: 1.5, mb: 1 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">Float Utilization</Typography>
+                          <Typography variant="caption" fontWeight={700} color={pctUsed >= 100 ? "error.main" : "text.primary"}>
+                            {pctUsed}%
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={pctUsed}
+                          sx={{
+                            height: 6,
+                            borderRadius: 1,
+                            backgroundColor: "#e2e8f0",
+                            "& .MuiLinearProgress-bar": {
+                              backgroundColor: pctUsed >= 100 ? "#64748b" : "#c99738",
+                            },
+                          }}
+                        />
+                      </Box>
+
                       <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1.5, pt: 1, borderTop: "1px dashed #cbd5e1" }}>
-                        <Typography variant="caption">Total: <strong>{currency} {adv.amount.toLocaleString()}</strong></Typography>
+                        <Typography variant="caption">Total: <strong>{currency} {totalAmt.toLocaleString()}</strong></Typography>
+                        <Typography variant="caption" color="text.secondary">Used: <strong>{currency} {used.toLocaleString()}</strong></Typography>
                         <Typography variant="caption" color={rem > 0 ? "secondary.dark" : "text.secondary"}>
                           Balance: <strong>{currency} {rem.toLocaleString()}</strong>
                         </Typography>
@@ -457,9 +505,14 @@ export default function StaffExpensePage() {
                             sx={{ fontSize: "0.7rem", fontWeight: 700 }}
                           />
                         ) : (
-                          <Typography variant="caption" sx={{ textTransform: "uppercase", fontWeight: 600 }}>
-                            {exp.paymentMode || "Cash"}
-                          </Typography>
+                          <Chip
+                            icon={<ReceiptLongIcon sx={{ fontSize: "14px !important" }} />}
+                            label={`Self (${(exp.paymentMode || "Cash").toUpperCase()})`}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ fontSize: "0.7rem", fontWeight: 700 }}
+                          />
                         )}
                       </TableCell>
 

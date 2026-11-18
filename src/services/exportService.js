@@ -23,9 +23,21 @@ export const exportExpensesToExcel = ({
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const adminTotal = totalAmount - legalTotal - techTotal;
 
+  const advanceExpensesTotal = expenses
+    .filter(e => e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const selfExpensesTotal = expenses
+    .filter(e => e.paymentMode !== "firm_advance" && !e.advanceDeducted)
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
   const totalAdvanceDisbursed = advances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
-  const totalAdvanceUsed = advances.reduce((sum, a) => sum + (Number(a.usedAmount) || 0), 0);
-  const totalAdvanceBalance = totalAdvanceDisbursed - totalAdvanceUsed;
+  const totalAdvanceUsed = advances.reduce((sum, a) => {
+    const fromExp = expenses
+      .filter((e) => e.advanceId === a.id && (e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted)))
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    return sum + (fromExp > 0 ? fromExp : Number(a.usedAmount || 0));
+  }, 0);
+  const totalAdvanceBalance = Math.max(0, totalAdvanceDisbursed - totalAdvanceUsed);
 
   const summaryData = [
     [settings.firmName || "LAW FIRM EXPENDITURE STATEMENT"],
@@ -39,8 +51,10 @@ export const exportExpensesToExcel = ({
     ["Date Range", `${filterSummary.startDate || "Beginning"} to ${filterSummary.endDate || "Present"}`],
     ["Category Filter", filterSummary.category || "All Categories"],
     [],
-    ["FINANCIAL AGGREGATES", `AMOUNT (${currency})`],
+    ["FINANCIAL AGGREGATES & CASHFLOW", `AMOUNT (${currency})`],
     ["Total Expenses Recorded", totalAmount],
+    ["  - Deducted from Firm Advance Float", advanceExpensesTotal],
+    ["  - Paid from Staff Self (Reimbursement Due)", selfExpensesTotal],
     ["  - Legal Fees & Court Expenses", legalTotal],
     ["  - Technical & Forensic Expenses", techTotal],
     ["  - Administrative & Other Out-of-Pocket", adminTotal],
@@ -370,7 +384,10 @@ export const exportExpensesToPDF = ({
     .filter(e => e.categoryType === "technical")
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const fromAdvanceTotal = expenses
-    .filter(e => e.paymentMode === "firm_advance" || e.advanceId)
+    .filter(e => e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const fromSelfTotal = expenses
+    .filter(e => e.paymentMode !== "firm_advance" && !e.advanceDeducted)
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
   if (layout.showKpiCards !== false) {

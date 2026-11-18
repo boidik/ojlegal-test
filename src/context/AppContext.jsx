@@ -14,6 +14,7 @@ import {
   updateAdvance as dbUpdateAdvance,
   deleteAdvance as dbDeleteAdvance,
   subscribeAdvances,
+  subscribeExpenses,
   getCategories,
   addCategory as dbAddCategory,
   updateCategory as dbUpdateCategory,
@@ -63,6 +64,29 @@ export const AppProvider = ({ children }) => {
     setNotification(prev => ({ ...prev, open: false }));
   };
 
+  // Live Mathematical Reconciler: dynamically computes usedAmount and remaining balance
+  // for all advances from actual verified expenses where paymentMode === "firm_advance"
+  const computeReconciledAdvances = (rawAdvances, rawExpenses) => {
+    if (!rawAdvances) return [];
+    return rawAdvances.map((adv) => {
+      const matchingExpenses = (rawExpenses || []).filter(
+        (e) => e.advanceId === adv.id && (e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted))
+      );
+      const fromExpenses = matchingExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      const totalAllocated = Number(adv.amount || 0);
+      // If expenses match, they are authoritative. If rawExpenses is loaded and has 0 matching, used is 0.
+      const effectiveUsed = fromExpenses;
+      const balance = Math.max(0, totalAllocated - effectiveUsed);
+      return {
+        ...adv,
+        amount: totalAllocated,
+        usedAmount: effectiveUsed,
+        balance: balance,
+        status: balance <= 0 ? "settled" : "active",
+      };
+    });
+  };
+
   // Fetch all collections
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -78,9 +102,11 @@ export const AppProvider = ({ children }) => {
         getUsers()
       ]);
 
+      const reconciledAdvances = computeReconciledAdvances(fetchedAdvances, fetchedExpenses);
+
       setCases(fetchedCases);
       setExpenses(fetchedExpenses);
-      setAdvances(fetchedAdvances);
+      setAdvances(reconciledAdvances);
       setCategories(fetchedCategories);
       setForums(fetchedForums);
       setSettings(fetchedSettings);
@@ -108,17 +134,26 @@ export const AppProvider = ({ children }) => {
     return () => window.removeEventListener("focus", handleFocus);
   }, [refreshData]);
 
-  // Real-time Firestore subscription for advances
+  // Real-time Firestore subscriptions for live synchronization of expenses and advances
   useEffect(() => {
-    const unsubscribe = subscribeAdvances((updatedAdvances) => {
+    const unsubAdvances = subscribeAdvances((updatedAdvances) => {
       if (updatedAdvances) {
-        setAdvances(updatedAdvances);
+        setAdvances((prevAdvances) => computeReconciledAdvances(updatedAdvances, expenses));
       }
     });
+
+    const unsubExpenses = subscribeExpenses((updatedExpenses) => {
+      if (updatedExpenses) {
+        setExpenses(updatedExpenses);
+        setAdvances((prevAdvances) => computeReconciledAdvances(prevAdvances, updatedExpenses));
+      }
+    });
+
     return () => {
-      if (typeof unsubscribe === "function") unsubscribe();
+      if (typeof unsubAdvances === "function") unsubAdvances();
+      if (typeof unsubExpenses === "function") unsubExpenses();
     };
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, expenses]);
 
   // ==================== EXPENSE HANDLERS ====================
   const handleAddExpense = async (data) => {

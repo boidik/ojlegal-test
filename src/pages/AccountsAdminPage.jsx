@@ -36,6 +36,8 @@ import GavelIcon from "@mui/icons-material/Gavel";
 import MemoryIcon from "@mui/icons-material/Memory";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ClearIcon from "@mui/icons-material/Clear";
 import StatCard from "../components/StatCard";
 import ExpenseDialog from "../components/ExpenseDialog";
@@ -112,8 +114,16 @@ export default function AccountsAdminPage() {
     return true;
   });
 
-  // Financial aggregates
+  // Financial aggregates: Live Mathematically Reconciled
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+  // Separation of Firm Advance Float vs. Associate Self (Out-of-Pocket Reimbursement)
+  const advanceExpenses = filteredExpenses.filter((e) => e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted));
+  const selfExpenses = filteredExpenses.filter((e) => e.paymentMode !== "firm_advance" && !e.advanceDeducted);
+
+  const advanceExpensesTotal = advanceExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const selfExpensesTotal = selfExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
   const legalExpenses = filteredExpenses
     .filter((e) => e.categoryType === "legal")
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
@@ -130,10 +140,17 @@ export default function AccountsAdminPage() {
   });
 
   const totalAdvancesDisbursed = filteredAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
-  const totalAdvancesUsed = filteredAdvances.reduce((sum, a) => sum + (Number(a.usedAmount) || 0), 0);
-  const remainingFloatBalance = totalAdvancesDisbursed - totalAdvancesUsed;
+  const totalAdvancesUsed = filteredAdvances.reduce((sum, a) => {
+    const fromExp = expenses
+      .filter((e) => e.advanceId === a.id && (e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted)))
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    return sum + (fromExp > 0 ? fromExp : Number(a.usedAmount || 0));
+  }, 0);
+  const remainingFloatBalance = Math.max(0, totalAdvancesDisbursed - totalAdvancesUsed);
 
   // Percentage calculations
+  const advanceFloatPct = totalExpenses > 0 ? Math.round((advanceExpensesTotal / totalExpenses) * 100) : 0;
+  const selfReimbursePct = totalExpenses > 0 ? Math.round((selfExpensesTotal / totalExpenses) * 100) : 0;
   const legalPct = totalExpenses > 0 ? Math.round((legalExpenses / totalExpenses) * 100) : 0;
   const techPct = totalExpenses > 0 ? Math.round((technicalExpenses / totalExpenses) * 100) : 0;
   const adminPct = totalExpenses > 0 ? Math.round((adminExpenses / totalExpenses) * 100) : 0;
@@ -286,13 +303,13 @@ export default function AccountsAdminPage() {
         </Box>
       </Box>
 
-      {/* Aggregate Financial Metrics */}
+      {/* Aggregate Financial Metrics: Live Mathematical Float & Cashflow Reconciler */}
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Incurred Expenses"
             value={`${currency} ${totalExpenses.toLocaleString()}`}
-            subtitle={`${filteredExpenses.length} verified vouchers`}
+            subtitle={`${filteredExpenses.length} verified voucher entries`}
             icon={TrendingUpIcon}
             color="#0f2942"
             delay={0.05}
@@ -301,22 +318,22 @@ export default function AccountsAdminPage() {
 
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Legal & Court Disbursements"
-            value={`${currency} ${legalExpenses.toLocaleString()}`}
-            subtitle={`${legalPct}% of aggregate expenditures`}
-            icon={GavelIcon}
-            color="#1e40af"
+            title="Paid from Firm Advance"
+            value={`${currency} ${advanceExpensesTotal.toLocaleString()}`}
+            subtitle={`Absorbed from advance float (${advanceFloatPct}%)`}
+            icon={AccountBalanceWalletIcon}
+            color="#c99738"
             delay={0.1}
           />
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Technical & Forensic Expenses"
-            value={`${currency} ${technicalExpenses.toLocaleString()}`}
-            subtitle={`${techPct}% of aggregate expenditures`}
-            icon={MemoryIcon}
-            color="#b45309"
+            title="Paid from Associate Self"
+            value={`${currency} ${selfExpensesTotal.toLocaleString()}`}
+            subtitle={`Reimbursements owed to staff (${selfReimbursePct}%)`}
+            icon={ReceiptLongIcon}
+            color="#1e40af"
             delay={0.15}
           />
         </Grid>
@@ -325,9 +342,9 @@ export default function AccountsAdminPage() {
           <StatCard
             title="Outstanding Advance Float"
             value={`${currency} ${remainingFloatBalance.toLocaleString()}`}
-            subtitle={`${currency} ${totalAdvancesDisbursed.toLocaleString()} total disbursed`}
-            icon={AccountBalanceWalletIcon}
-            color="#c99738"
+            subtitle={`Out of ${currency} ${totalAdvancesDisbursed.toLocaleString()} total float disbursed`}
+            icon={CheckCircleIcon}
+            color={remainingFloatBalance > 0 ? "#16a34a" : "#64748b"}
             delay={0.2}
           />
         </Grid>
@@ -666,16 +683,21 @@ export default function AccountsAdminPage() {
                         {exp.paymentMode === "firm_advance" ? (
                           <Chip
                             icon={<AccountBalanceWalletIcon sx={{ fontSize: "14px !important" }} />}
-                            label="Firm Advance"
+                            label="Firm Advance Float"
                             size="small"
                             color="secondary"
                             variant="outlined"
                             sx={{ fontSize: "0.7rem", fontWeight: 700 }}
                           />
                         ) : (
-                          <Typography variant="caption" sx={{ textTransform: "uppercase", fontWeight: 600 }}>
-                            {exp.paymentMode || "Cash"}
-                          </Typography>
+                          <Chip
+                            icon={<ReceiptLongIcon sx={{ fontSize: "14px !important" }} />}
+                            label={`Self (${(exp.paymentMode || "Cash").toUpperCase()})`}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ fontSize: "0.7rem", fontWeight: 700 }}
+                          />
                         )}
                       </TableCell>
 
@@ -818,8 +840,14 @@ export default function AccountsAdminPage() {
                   </TableRow>
                 ) : (
                   filteredAdvances.map((adv) => {
-                    const balance = adv.amount - (adv.usedAmount || 0);
+                    const fromExp = expenses
+                      .filter((e) => e.advanceId === adv.id && (e.paymentMode === "firm_advance" || Boolean(e.advanceDeducted)))
+                      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+                    const effectiveUsed = fromExp > 0 ? fromExp : Number(adv.usedAmount || 0);
+                    const totalAmt = Number(adv.amount || 0);
+                    const balance = Math.max(0, totalAmt - effectiveUsed);
                     const isSettled = balance <= 0 || adv.status === "settled";
+                    const pctUsed = totalAmt > 0 ? Math.min(100, Math.round((effectiveUsed / totalAmt) * 100)) : 0;
 
                     return (
                       <TableRow key={adv.id} hover>
@@ -858,13 +886,16 @@ export default function AccountsAdminPage() {
 
                         <TableCell align="right">
                           <Typography variant="body2" fontWeight={700}>
-                            {currency} {Number(adv.amount).toLocaleString()}
+                            {currency} {totalAmt.toLocaleString()}
                           </Typography>
                         </TableCell>
 
                         <TableCell align="right">
                           <Typography variant="body2" color="text.secondary">
-                            {currency} {Number(adv.usedAmount || 0).toLocaleString()}
+                            {currency} {effectiveUsed.toLocaleString()}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {pctUsed}% utilized
                           </Typography>
                         </TableCell>
 

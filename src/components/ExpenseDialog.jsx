@@ -55,7 +55,8 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
   const staffAdvances = advances.filter(a => {
     if (!a) return false;
     const balance = Number(a.amount || 0) - Number(a.usedAmount || 0);
-    if (balance <= 0) return false;
+    const isCurrentAdvance = expenseToEdit && (expenseToEdit.paymentMode === "firm_advance" || expenseToEdit.advanceDeducted) && expenseToEdit.advanceId === a.id;
+    if (balance <= 0 && !isCurrentAdvance) return false;
 
     const tId = String(targetStaffId || "").trim();
     const tEmail = String(targetStaffEmail || "").trim().toLowerCase();
@@ -68,12 +69,14 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
     if (tId && (aId === tId || aEmail === tId)) return true;
     if (tEmail && (aEmail === tEmail || aId.toLowerCase() === tEmail)) return true;
     if (tName && (aName === tName || aId.toLowerCase() === tName)) return true;
+    if (tEmail && aEmail && tEmail.split("@")[0] === aEmail.split("@")[0]) return true;
 
     return false;
   });
 
   useEffect(() => {
     if (expenseToEdit) {
+      const isAdv = expenseToEdit.paymentMode === "firm_advance" || Boolean(expenseToEdit.advanceDeducted);
       setFormData({
         caseId: expenseToEdit.caseId || "",
         caseTitle: expenseToEdit.caseTitle || "",
@@ -83,8 +86,8 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
         category: expenseToEdit.category || "",
         categoryType: expenseToEdit.categoryType || "legal",
         amount: expenseToEdit.amount || "",
-        paymentMode: expenseToEdit.paymentMode || "cash",
-        advanceId: expenseToEdit.advanceId || "",
+        paymentMode: isAdv ? "firm_advance" : (expenseToEdit.paymentMode || "cash"),
+        advanceId: isAdv ? (expenseToEdit.advanceId || "") : "",
         notes: expenseToEdit.notes || "",
       });
     } else {
@@ -94,10 +97,30 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
         caseTitle: activeCases[0]?.title || "",
         category: categories[0]?.name || "",
         categoryType: categories[0]?.type || "legal",
+        advanceId: "",
       });
     }
     setError("");
   }, [expenseToEdit, open]);
+
+  const handlePaymentModeChange = (e) => {
+    const newMode = e.target.value;
+    setFormData((prev) => {
+      let newAdvanceId = prev.advanceId;
+      if (newMode === "firm_advance") {
+        if (!newAdvanceId || !staffAdvances.some((a) => a.id === newAdvanceId)) {
+          newAdvanceId = staffAdvances[0]?.id || "";
+        }
+      } else {
+        newAdvanceId = "";
+      }
+      return {
+        ...prev,
+        paymentMode: newMode,
+        advanceId: newAdvanceId,
+      };
+    });
+  };
 
   const handleCaseChange = (e) => {
     const selectedId = e.target.value;
@@ -134,6 +157,12 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
       return;
     }
 
+    const isAdvance = formData.paymentMode === "firm_advance";
+    if (isAdvance && !formData.advanceId) {
+      setError("Please select an authorized advance float to deduct this expense from.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -141,10 +170,12 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
       const payload = {
         ...formData,
         amount: Number(formData.amount),
+        paymentMode: formData.paymentMode,
+        advanceDeducted: isAdvance,
+        advanceId: isAdvance ? formData.advanceId : null,
         staffId: expenseToEdit ? expenseToEdit.staffId : currentUser?.uid,
         staffName: expenseToEdit ? expenseToEdit.staffName : (currentUser?.displayName || "Staff Member"),
         staffEmail: expenseToEdit ? expenseToEdit.staffEmail : (currentUser?.email || ""),
-        advanceDeducted: formData.paymentMode === "firm_advance",
       };
 
       if (expenseToEdit) {
@@ -308,7 +339,7 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
                 select
                 label="Payment Mode"
                 value={formData.paymentMode}
-                onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
+                onChange={handlePaymentModeChange}
                 fullWidth
                 size="small"
                 required
@@ -344,10 +375,21 @@ export default function ExpenseDialog({ open, onClose, expenseToEdit = null }) {
                     </MenuItem>
                   ) : (
                     staffAdvances.map((adv) => {
-                      const balance = adv.amount - (adv.usedAmount || 0);
+                      const isCurrent = expenseToEdit && expenseToEdit.advanceId === adv.id;
+                      const currentExpAmt = isCurrent ? Number(expenseToEdit.amount || 0) : 0;
+                      const availableBalance = (Number(adv.amount || 0) - Number(adv.usedAmount || 0)) + currentExpAmt;
                       return (
                         <MenuItem key={adv.id} value={adv.id}>
-                          {adv.id} - {adv.caseTitle} (Balance: {currency} {balance.toLocaleString()})
+                          <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+                            <span>{adv.id} - {adv.caseTitle || (adv.caseId === "ALL" ? "General Float" : adv.caseId)}</span>
+                            <Chip
+                              label={`Balance: ${currency} ${availableBalance.toLocaleString()}`}
+                              size="small"
+                              color="secondary"
+                              variant="outlined"
+                              sx={{ ml: 1, fontSize: "0.7rem", fontWeight: 700 }}
+                            />
+                          </Box>
                         </MenuItem>
                       );
                     })
